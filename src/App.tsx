@@ -50,7 +50,6 @@ const App = () => (
 
               {/* Admin Routes */}
               <Route path="/superman" element={<AdminLogin />} />
-              <Route path="/superman/login" element={<AdminLogin />} />
               <Route path="/superman/dashboard" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
               <Route path="/superman/users" element={<AdminProtectedRoute><UsersManagement /></AdminProtectedRoute>} />
               <Route path="/superman/expiring" element={<AdminProtectedRoute><ExpiringMemberships /></AdminProtectedRoute>} />
