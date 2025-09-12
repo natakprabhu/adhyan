@@ -1,0 +1,7 @@
+project_id = "xrsuaugxgchbrshhfgdi"
+
+[functions.admin-login]
+verify_jwt = false
+
+[functions.send-receipt]
+verify_jwt = false
