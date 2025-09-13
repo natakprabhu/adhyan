@@ -197,9 +197,21 @@ export default function Profile() {
     }
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-  };
+  // const handleSignOut = async () => {
+  //   await supabase.auth.signOut();
+  // };
+
+
+const handleSignOut = async () => {
+  const { error } = await supabase.auth.signOut();
+  if (error) {
+    toast({ title: "Error", description: "Failed to sign out", variant: "destructive" });
+    return;
+  }
+
+  // Clear user context if needed
+  window.location.href = "/auth"; 
+};
 
   const formatDate= (dateString: string) =>
     new Date(dateString).toLocaleDateString('en-US', {
@@ -381,25 +393,34 @@ export default function Profile() {
           ) : (
             transactions.map(tx => (
               <div key={tx.id} className="border rounded-lg p-4 space-y-2">
-                <div className="flex justify-between items-center">
-                  <div className="space-y-1">
+                <div className="flex flex-wrap justify-between items-center gap-2">
+                  <div className="space-y-1 min-w-0">
                     {tx.booking && (
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span>Seat No.{tx.booking.seats?.seat_number}</span>
-                        <Badge variant="outline">{tx.booking.type}</Badge>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span className="truncate">Seat No.{tx.booking.seats?.seat_number}</span>
+                        <Badge variant="outline" className="whitespace-nowrap">{tx.booking.type}</Badge>
                       </div>
                     )}
-                    {tx.booking?.slot && <p className="text-sm text-muted-foreground">{tx.booking.slot} slot</p>}
+                    {tx.booking?.slot && (
+                      <p className="text-sm text-muted-foreground">{tx.booking.slot} slot</p>
+                    )}
                   </div>
-                  <div className="text-right flex items-center gap-2">
-                    <p className="font-bold">₹{tx.amount}</p>
-                    <Badge className={getStatusColor(tx.status)}>{tx.status}</Badge>
-                    {(tx.status === 'paid' || tx.status === 'success' || tx.status === 'completed') && (
-                      <Button variant="outline" size="sm" onClick={() => handleDownloadInvoice(tx)}><Download className="h-4 w-4" /></Button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <p className="font-bold whitespace-nowrap">₹{tx.amount}</p>
+                    <Badge className={getStatusColor(tx.status) + " whitespace-nowrap"}>{tx.status}</Badge>
+                    {(tx.status === "paid" || tx.status === "success" || tx.status === "completed") && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownloadInvoice(tx)}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
                     )}
                   </div>
                 </div>
+
                 {tx.booking && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Clock className="h-4 w-4" />
