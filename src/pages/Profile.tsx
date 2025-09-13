@@ -202,16 +202,25 @@ export default function Profile() {
   // };
 
 
-const handleSignOut = async () => {
-  const { error } = await supabase.auth.signOut();
-  if (error) {
-    toast({ title: "Error", description: "Failed to sign out", variant: "destructive" });
-    return;
-  }
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        title: "Sign Out Failed",
+        description: error.message || "An unknown error occurred",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  // Clear user context if needed
-  window.location.href = "/auth"; 
-};
+    toast({
+      title: "Signed Out",
+      description: "You have been signed out successfully.",
+    });
+
+    navigate("/auth", { replace: true });
+  };
+
 
   const formatDate= (dateString: string) =>
     new Date(dateString).toLocaleDateString('en-US', {
