@@ -269,7 +269,7 @@ export default function MySeat() {
 
       {/* Days Remaining */}
       <div className={`rounded-lg p-4 text-center mt-4 ${activeBooking.seat_category === 'fixed' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'}`}>
-        <div className="text-3xl font-bold animate-pulse">{daysRemaining}</div>
+        <div className="text-3xl font-bold">{daysRemaining}</div>
         <div className="text-sm">{daysRemaining === 1 ? 'Day Remaining' : 'Days Remaining'}</div>
       </div>
     </CardContent>
