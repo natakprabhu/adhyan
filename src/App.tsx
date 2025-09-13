@@ -49,8 +49,7 @@ const App = () => (
               <Route path="/profile" element={<ProtectedRoute><MobileLayout><Profile /></MobileLayout></ProtectedRoute>} />
 
               {/* Admin Routes */}
-              <Route path="/superman" element={<AdminLogin />} />
-              <Route path="/superman/dashboard" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
+              <Route path="/superman/" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
               <Route path="/superman/users" element={<AdminProtectedRoute><UsersManagement /></AdminProtectedRoute>} />
               <Route path="/superman/expiring" element={<AdminProtectedRoute><ExpiringMemberships /></AdminProtectedRoute>} />
               <Route path="/superman/biometric" element={<AdminProtectedRoute><BiometricManagement /></AdminProtectedRoute>} />

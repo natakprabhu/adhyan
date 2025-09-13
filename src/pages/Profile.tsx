@@ -167,17 +167,23 @@ export default function Profile() {
 
       if (profileError) throw profileError;
 
+
+      if (password !== confirmPassword) {
+        toast({
+          title: "Error",
+          description: "Passwords do not match!",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       // Update email if changed
       if (updates.email && updates.email !== userProfile?.email) {
         const { error: emailError } = await supabase.auth.updateUser({ email: updates.email });
         if (emailError) throw emailError;
       }
 
-      // Update password if provided
-      if (updates.password) {
-        const { error: pwError } = await supabase.auth.updateUser({ password: updates.password });
-        if (pwError) throw pwError;
-      }
+
 
       setUserProfile(prev => prev ? { ...prev, ...updates } : null);
       setIsEditing(false);
@@ -195,11 +201,25 @@ export default function Profile() {
     await supabase.auth.signOut();
   };
 
-  const formatDateTime = (dateString: string) =>
+  const formatDate= (dateString: string) =>
     new Date(dateString).toLocaleDateString('en-US', {
       month: 'short', day: 'numeric', year: 'numeric',
       hour: '2-digit', minute: '2-digit'
     });
+
+  const formatDateTime = (dateString: string) => {
+  if (!dateString) return "-";
+  return new Date(dateString).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -302,10 +322,33 @@ export default function Profile() {
                 <Label htmlFor="email">Email Address</Label>
                 <Input id="email" name="email" defaultValue={userProfile?.email} required />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input id="password" name="password" type="password" placeholder="Enter new password" />
+              {/* Password Section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="password">New Password</Label>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter new password"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm password"
+                  />
+                </div>
               </div>
+
+
               <div className="space-y-2">
                 <Label htmlFor="telegram_id">Telegram ID</Label>
                 <Input id="telegram_id" name="telegram_id" defaultValue={userProfile?.telegram_id} placeholder="@your_telegram_id" />
@@ -343,7 +386,7 @@ export default function Profile() {
                     {tx.booking && (
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span>Seat {tx.booking.seats?.seat_number}</span>
+                        <span>Seat No.{tx.booking.seats?.seat_number}</span>
                         <Badge variant="outline">{tx.booking.type}</Badge>
                       </div>
                     )}
@@ -360,7 +403,7 @@ export default function Profile() {
                 {tx.booking && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Clock className="h-4 w-4" />
-                    {formatDateTime(tx.booking.start_time)} - {formatDateTime(tx.booking.end_time)}
+                    {formatDateTime(tx.booking.start_time)} to {formatDateTime(tx.booking.end_time)}
                   </div>
                 )}
                 {tx.admin_notes && <p className="text-xs text-muted-foreground">Admin Notes: {tx.admin_notes}</p>}
