@@ -42,7 +42,8 @@ export const UsersManagement = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-
+  
+  // Add transaction form state
   const [newTransaction, setNewTransaction] = useState({
     amount: '',
     status: '',
@@ -50,13 +51,11 @@ export const UsersManagement = () => {
   });
   const [isAddingTx, setIsAddingTx] = useState(false);
 
-  // Sorting state
-  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
-
   useEffect(() => {
     fetchUsersWithValidity();
   }, []);
 
+  // Fetch users + their validity from bookings
   const fetchUsersWithValidity = async () => {
     try {
       setIsLoading(true);
@@ -148,24 +147,51 @@ export const UsersManagement = () => {
     setIsDialogOpen(true);
   };
 
-  const handleAddTransaction = async () => {
-    try {
-      const { error } = await supabase.from("transactions").insert({
-        user_id: selectedUser.id,
-        amount: Number(newTransaction.amount),
-        status: "completed",
-        admin_notes: newTransaction.admin_notes || null,
-      });
+  // const handleAddTransaction = async () => {
+  //   if (!selectedUser) return;
+  //   if (!newTransaction.amount || !newTransaction.status) {
+  //     toast({ title: "Error", description: "Amount and Status are required.", variant: "destructive" });
+  //     return;
+  //   }
+  //   try {
+  //     setIsAddingTx(true);
+  //     const { error } = await supabase.from('transactions').insert({
+  //       user_id: selectedUser.id,
+  //       amount: Number(newTransaction.amount),
+  //       status: "completed",
+  //       admin_notes: newTransaction.admin_notes,
+  //     });
+  //     if (error) throw error;
+  //     toast({ title: "Success", description: "Transaction added successfully." });
+  //     setNewTransaction({ amount: '', status: '', admin_notes: '' });
+  //     await fetchUserTransactions(selectedUser.id);
+  //   } catch (error) {
+  //     console.error('Error adding transaction:', error);
+  //     toast({ title: "Error", description: "Failed to add transaction.", variant: "destructive" });
+  //   } finally {
+  //     setIsAddingTx(false);
+  //   }
+  // };
 
-      if (error) throw error;
+  const handleAddTransaction = async () => {
+  try {
+    const { error } = await supabase.from("transactions").insert({
+      user_id: selectedUser.id,
+      amount: Number(newTransaction.amount),
+      status: "completed", // ✅ hardcoded here, not from state
+      admin_notes: newTransaction.admin_notes || null,
+    });
+
+    if (error) throw error;
       toast({ title: "Success", description: "Transaction added successfully." });
       setNewTransaction({ amount: '', status: '', admin_notes: '' });
       await fetchUserTransactions(selectedUser.id);
-    } catch (err) {
+  } catch (err) {console.error('Error adding transaction:', error);
       toast({ title: "Error", description: "Failed to add transaction.", variant: "destructive" });
       console.error("Error adding transaction:", err.message);
-    }
-  };
+  }
+};
+
 
   const formatDate = (dateString: string) =>
     dateString ? new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-';
@@ -181,66 +207,7 @@ export const UsersManagement = () => {
     return <Badge variant="secondary">Active</Badge>;
   };
 
-  // Sorting logic
-  const handleSort = (key: string) => {
-    setSortConfig((prev) => {
-      if (prev && prev.key === key) {
-        return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' };
-      }
-      return { key, direction: 'asc' };
-    });
-  };
-
-  const getSortIndicator = (key: string) => {
-    if (!sortConfig || sortConfig.key !== key) return '';
-    return sortConfig.direction === 'asc' ? ' ▲' : ' ▼';
-  };
-
-  const sortedUsers = [...userData].sort((a, b) => {
-    if (!sortConfig) return 0;
-    const { key, direction } = sortConfig;
-    let valA: any = a[key];
-    let valB: any = b[key];
-
-    // Handle status sorting separately
-    if (key === 'status') {
-      const computeStatus = (user: any) => {
-        if (!user.approved) return 'Pending';
-        if (!user.validity_from || !user.validity_to) return 'Approved';
-        const today = new Date();
-        const validFrom = new Date(user.validity_from);
-        const validTo = new Date(user.validity_to);
-        if (today < validFrom) return 'Future Valid';
-        if (today > validTo) return 'Expired';
-        return 'Active';
-      };
-      valA = computeStatus(a);
-      valB = computeStatus(b);
-    }
-
-    if (valA === null || valA === undefined) valA = '';
-    if (valB === null || valB === undefined) valB = '';
-
-    if (typeof valA === 'string' && typeof valB === 'string') {
-      return direction === 'asc'
-        ? valA.localeCompare(valB)
-        : valB.localeCompare(valA);
-    }
-
-    if (typeof valA === 'number' && typeof valB === 'number') {
-      return direction === 'asc' ? valA - valB : valB - valA;
-    }
-
-    if (key.includes('date') || key.includes('created') || key.includes('validity')) {
-      const dateA = new Date(valA).getTime();
-      const dateB = new Date(valB).getTime();
-      return direction === 'asc' ? dateA - dateB : dateB - dateA;
-    }
-
-    return 0;
-  });
-
-  const filteredUsers = sortedUsers.filter(u =>
+  const filteredUsers = userData.filter(u =>
     u.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.phone?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -275,25 +242,12 @@ export const UsersManagement = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead onClick={() => handleSort('name')} className="cursor-pointer">
-                  Name{getSortIndicator('name')}
-                </TableHead>
-                <TableHead onClick={() => handleSort('email')} className="cursor-pointer">
-                  Email{getSortIndicator('email')}
-                </TableHead>
-                
-                <TableHead onClick={() => handleSort('status')} className="cursor-pointer">
-                  Status {sortConfig?.key === 'status' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
-                </TableHead>
-                <TableHead onClick={() => handleSort('validity_from')} className="cursor-pointer">
-                  Validity Start{getSortIndicator('validity_from')}
-                </TableHead>
-                <TableHead onClick={() => handleSort('validity_to')} className="cursor-pointer">
-                  Validity End{getSortIndicator('validity_to')}
-                </TableHead>
-                <TableHead onClick={() => handleSort('days_remaining')} className="cursor-pointer">
-                  Days Remaining{getSortIndicator('days_remaining')}
-                </TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Validity Start</TableHead>
+                <TableHead>Validity End</TableHead>
+                <TableHead>Days Remaining</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -403,6 +357,7 @@ export const UsersManagement = () => {
                           </p>
                         </div>
                       ))}
+
                     </div>
                   )}
                 </CardContent>
