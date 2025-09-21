@@ -196,49 +196,50 @@ export const UsersManagement = () => {
     return sortConfig.direction === 'asc' ? ' ▲' : ' ▼';
   };
 
-  const sortedUsers = [...userData].sort((a, b) => {
-    if (!sortConfig) return 0;
-    const { key, direction } = sortConfig;
-    let valA: any = a[key];
-    let valB: any = b[key];
 
-    // Handle status sorting separately
-    if (key === 'status') {
-      const computeStatus = (user: any) => {
-        if (!user.approved) return 'Pending';
-        if (!user.validity_from || !user.validity_to) return 'Approved';
-        const today = new Date();
-        const validFrom = new Date(user.validity_from);
-        const validTo = new Date(user.validity_to);
-        if (today < validFrom) return 'Future Valid';
-        if (today > validTo) return 'Expired';
-        return 'Active';
-      };
-      valA = computeStatus(a);
-      valB = computeStatus(b);
-    }
+const sortedUsers = [...userData].sort((a, b) => {
+  if (!sortConfig) return 0;
+  const { key, direction } = sortConfig;
+  let valA: any = a[key];
+  let valB: any = b[key];
 
-    if (valA === null || valA === undefined) valA = '';
-    if (valB === null || valB === undefined) valB = '';
+  // Handle status sorting separately
+  if (key === 'status') {
+    const computeStatus = (user: any) => {
+      if (!user.approved) return 'Pending';
+      if (!user.validity_from || !user.validity_to) return 'Approved';
+      const today = new Date();
+      const validFrom = new Date(user.validity_from);
+      const validTo = new Date(user.validity_to);
+      if (today < validFrom) return 'Future Valid';
+      if (today > validTo) return 'Expired';
+      return 'Active';
+    };
+    valA = computeStatus(a);
+    valB = computeStatus(b);
+  }
 
-    if (typeof valA === 'string' && typeof valB === 'string') {
-      return direction === 'asc'
-        ? valA.localeCompare(valB)
-        : valB.localeCompare(valA);
-    }
+  if (valA === null || valA === undefined) valA = '';
+  if (valB === null || valB === undefined) valB = '';
 
-    if (typeof valA === 'number' && typeof valB === 'number') {
-      return direction === 'asc' ? valA - valB : valB - valA;
-    }
+  if (typeof valA === 'string' && typeof valB === 'string') {
+    return direction === 'asc'
+      ? valA.localeCompare(valB)
+      : valB.localeCompare(valA);
+  }
 
-    if (key.includes('date') || key.includes('created') || key.includes('validity')) {
-      const dateA = new Date(valA).getTime();
-      const dateB = new Date(valB).getTime();
-      return direction === 'asc' ? dateA - dateB : dateB - dateA;
-    }
+  if (typeof valA === 'number' && typeof valB === 'number') {
+    return direction === 'asc' ? valA - valB : valB - valA;
+  }
 
-    return 0;
-  });
+  if (key.includes('date') || key.includes('created') || key.includes('validity')) {
+    const dateA = new Date(valA).getTime();
+    const dateB = new Date(valB).getTime();
+    return direction === 'asc' ? dateA - dateB : dateB - dateA;
+  }
+
+  return 0;
+});
 
   const filteredUsers = sortedUsers.filter(u =>
     u.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -281,9 +282,8 @@ export const UsersManagement = () => {
                 <TableHead onClick={() => handleSort('email')} className="cursor-pointer">
                   Email{getSortIndicator('email')}
                 </TableHead>
-                
-                <TableHead onClick={() => handleSort('status')} className="cursor-pointer">
-                  Status {sortConfig?.key === 'status' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
+                <TableHead onClick={() => handleSort('status')} className="cursor-pointer select-none">
+                  Status {getSortIndicator('status')}
                 </TableHead>
                 <TableHead onClick={() => handleSort('validity_from')} className="cursor-pointer">
                   Validity Start{getSortIndicator('validity_from')}
