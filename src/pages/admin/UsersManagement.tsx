@@ -17,6 +17,7 @@ interface User {
   phone: string;
   approved: boolean;
   created_at: string;
+  seat_type?: string; 
 }
 
 interface Booking {
@@ -75,27 +76,31 @@ export const UsersManagement = () => {
             .select('*')
             .eq('user_id', user.id)
             .eq('status', 'confirmed')
-            .eq('payment_status', 'paid');
+            .eq('payment_status', 'paid')
+            .order('membership_start_date', { ascending: false }) // 👈 most recent booking first
+            .limit(1);
 
           if (bookingsError) throw bookingsError;
 
           let validity_from: string | null = null;
           let validity_to: string | null = null;
+          let seat_type: string | null = null;
 
           if (bookings && bookings.length > 0) {
-            const sortedByStart = bookings
-              .filter(b => b.membership_start_date && b.membership_end_date)
-              .sort((a, b) => new Date(a.membership_start_date).getTime() - new Date(b.membership_start_date).getTime());
-
-            validity_from = sortedByStart[0]?.membership_start_date || null;
-            validity_to = sortedByStart[sortedByStart.length - 1]?.membership_end_date || null;
+            const booking = bookings[0];
+            validity_from = booking.membership_start_date || null;
+            validity_to = booking.membership_end_date || null;
+            seat_type = booking.seat_category || null; // 👈 pull recent seat type
           }
 
           let days_remaining: number | null = null;
           if (validity_to) {
             const today = new Date();
             const endDate = new Date(validity_to);
-            days_remaining = Math.max(Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)), 0);
+            days_remaining = Math.max(
+              Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)),
+              0
+            );
           }
 
           return {
@@ -103,6 +108,7 @@ export const UsersManagement = () => {
             validity_from,
             validity_to,
             days_remaining,
+            seat_type, // 👈 inject dynamically
           };
         })
       );
@@ -166,6 +172,22 @@ export const UsersManagement = () => {
       console.error("Error adding transaction:", err.message);
     }
   };
+
+
+  const getSeatTypeBadge = (seatType?: string) => {
+  if (!seatType) return <Badge variant="outline">-</Badge>;
+
+  const formatted = seatType.charAt(0).toUpperCase() + seatType.slice(1).toLowerCase();
+
+  if (seatType.toLowerCase() === 'floating') {
+    return <Badge className="bg-yellow-500 text-white">{formatted}</Badge>;
+  }
+  if (seatType.toLowerCase() === 'fixed') {
+    return <Badge className="bg-blue-500 text-white">{formatted}</Badge>;
+  }
+  return <Badge variant="outline">{formatted}</Badge>;
+};
+
 
   const formatDate = (dateString: string) =>
     dateString ? new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-';
@@ -294,6 +316,10 @@ const sortedUsers = [...userData].sort((a, b) => {
                 <TableHead onClick={() => handleSort('days_remaining')} className="cursor-pointer">
                   Days Remaining{getSortIndicator('days_remaining')}
                 </TableHead>
+                <TableHead onClick={() => handleSort('seat_type')} className="cursor-pointer">
+                  Seat Type {getSortIndicator('seat_type')}
+                </TableHead>
+
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -306,6 +332,8 @@ const sortedUsers = [...userData].sort((a, b) => {
                   <TableCell>{user.validity_from ? formatDate(user.validity_from) : '-'}</TableCell>
                   <TableCell>{user.validity_to ? formatDate(user.validity_to) : '-'}</TableCell>
                   <TableCell>{user.days_remaining != null ? user.days_remaining : '-'}</TableCell>
+                  <TableCell>{getSeatTypeBadge(user.seat_type)}</TableCell>
+
                   <TableCell>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" onClick={() => handleViewUser(user)}>
@@ -341,6 +369,8 @@ const sortedUsers = [...userData].sort((a, b) => {
                   <div><Label>Validity Start</Label><p>{selectedUser.validity_from ? formatDate(selectedUser.validity_from) : '-'}</p></div>
                   <div><Label>Validity End</Label><p>{selectedUser.validity_to ? formatDate(selectedUser.validity_to) : '-'}</p></div>
                   <div><Label>Days Remaining</Label><p>{selectedUser.days_remaining != null ? selectedUser.days_remaining : '-'}</p></div>
+                  <div>{getSeatTypeBadge(selectedUser.seat_type)}</div>
+
                 </CardContent>
               </Card>
 
