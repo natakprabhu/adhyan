@@ -8,6 +8,12 @@ import { UsersManagement } from './UsersManagement';
 import { BiometricManagement } from './BiometricManagement';
 import { GanttChart } from './GanttChart';
 import { ManageBookings } from './ManageBookings'; // 👈 new component
+import { FixedUsersManagement } from "./FixedUsersManagement";
+import { FloatingUsersManagement } from "./FloatingUsersManagement";
+import { LimitedUsersManagement } from "./LimitedUsersManagement";
+import { WalletManagement } from "./WalletManagement";
+import { SeatLayout } from "./SeatLayout";
+
 
 export const AdminDashboard = () => {
   const { user, role, loading } = useAuth();
@@ -195,34 +201,57 @@ const fetchStats = async () => {
         </div>
       </div>
 
+        <Tabs defaultValue="bookings" className="w-full">
+          <TabsList className="grid grid-cols-9 w-full gap-1">
+            <TabsTrigger value="bookings">Bookings</TabsTrigger>
+            <TabsTrigger value="users">All Users</TabsTrigger>
+            <TabsTrigger value="fixed-users">Fixed Users</TabsTrigger>
+            <TabsTrigger value="floating-users">Floating Users</TabsTrigger>
+            <TabsTrigger value="limited-users">Limited Hours Users</TabsTrigger>
+            <TabsTrigger value="biometric">Biometric</TabsTrigger>
+            <TabsTrigger value="schedule">Seat Status</TabsTrigger>
+            <TabsTrigger value="layout">Seat Layout</TabsTrigger>
+            <TabsTrigger value="wallet">Wallet</TabsTrigger>
+          </TabsList>
 
-      <Tabs defaultValue="bookings" className="w-full">
-        <TabsList className="grid grid-cols-4 w-full max-w-2xl">
-          <TabsTrigger value="bookings">Bookings</TabsTrigger>
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="biometric">Biometric</TabsTrigger>
-          <TabsTrigger value="schedule">Seat Schedule</TabsTrigger>
-        
-        </TabsList>
+          {/* Tabs Content */}
+          <TabsContent value="bookings">
+            <ManageBookings /> {/* bookings CRUD */}
+          </TabsContent>
 
-        <TabsContent value="users">
-          <UsersManagement />
-        </TabsContent>
+          <TabsContent value="users">
+            <UsersManagement />
+          </TabsContent>
 
-        <TabsContent value="biometric">
-          <BiometricManagement />
-        </TabsContent>
+          <TabsContent value="fixed-users">
+            <FixedUsersManagement />
+          </TabsContent>
 
-        <TabsContent value="schedule">
-          <GanttChart />
-        </TabsContent>
+          <TabsContent value="floating-users">
+            <FloatingUsersManagement />
+          </TabsContent>
 
-        <TabsContent value="bookings">
-          <ManageBookings /> {/* 👈 bookings CRUD */}
-        </TabsContent>
+          <TabsContent value="limited-users">
+            <LimitedUsersManagement />
+          </TabsContent>
 
-        
-      </Tabs>
+          <TabsContent value="biometric">
+            <BiometricManagement />
+          </TabsContent>
+
+          <TabsContent value="schedule">
+            <GanttChart />
+          </TabsContent>
+
+          <TabsContent value="layout">
+            <SeatLayout /> {/* Seat layout grid */}
+          </TabsContent>
+
+          <TabsContent value="wallet">
+            <WalletManagement /> {/* Wallet tab component */}
+          </TabsContent>
+        </Tabs>
+
     </div>
   );
 };

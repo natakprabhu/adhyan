@@ -25,6 +25,7 @@ interface Booking {
   membership_end_date: string;
   status: string;
   payment_status: string;
+  seat_category?: string;
 }
 
 interface UserTransaction {
@@ -35,7 +36,7 @@ interface UserTransaction {
   admin_notes?: string;
 }
 
-export const UsersManagement = () => {
+export const FixedUsersManagement = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [userData, setUserData] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -55,10 +56,10 @@ export const UsersManagement = () => {
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 
   useEffect(() => {
-    fetchUsersWithValidity();
+    fetchFixedUsers();
   }, []);
 
-  const fetchUsersWithValidity = async () => {
+  const fetchFixedUsers = async () => {
     try {
       setIsLoading(true);
 
@@ -77,7 +78,7 @@ export const UsersManagement = () => {
             .eq('user_id', user.id)
             .eq('status', 'confirmed')
             .eq('payment_status', 'paid')
-            .order('membership_start_date', { ascending: false }) // 👈 most recent booking first
+            .order('membership_start_date', { ascending: false })
             .limit(1);
 
           if (bookingsError) throw bookingsError;
@@ -90,7 +91,7 @@ export const UsersManagement = () => {
             const booking = bookings[0];
             validity_from = booking.membership_start_date || null;
             validity_to = booking.membership_end_date || null;
-            seat_type = booking.seat_category || null; // 👈 pull recent seat type
+            seat_type = booking.seat_category || null;
           }
 
           let days_remaining: number | null = null;
@@ -108,18 +109,21 @@ export const UsersManagement = () => {
             validity_from,
             validity_to,
             days_remaining,
-            seat_type, // 👈 inject dynamically
+            seat_type,
           };
         })
       );
 
+      // 👉 filter only fixed users
+      const fixedUsers = enrichedUsers.filter(u => u.seat_type?.toLowerCase() === 'fixed');
+
       setUsers(usersData || []);
-      setUserData(enrichedUsers);
+      setUserData(fixedUsers);
     } catch (error) {
-      console.error('Error fetching users with validity:', error);
+      console.error('Error fetching fixed users:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch users.",
+        description: "Failed to fetch fixed users.",
         variant: "destructive",
       });
     } finally {
@@ -173,21 +177,19 @@ export const UsersManagement = () => {
     }
   };
 
-
   const getSeatTypeBadge = (seatType?: string) => {
-  if (!seatType) return <Badge variant="outline">-</Badge>;
+    if (!seatType) return <Badge variant="outline">-</Badge>;
 
-  const formatted = seatType.charAt(0).toUpperCase() + seatType.slice(1).toLowerCase();
+    const formatted = seatType.charAt(0).toUpperCase() + seatType.slice(1).toLowerCase();
 
-  if (seatType.toLowerCase() === 'floating') {
-    return <Badge className="bg-yellow-500 text-white">{formatted}</Badge>;
-  }
-  if (seatType.toLowerCase() === 'fixed') {
-    return <Badge className="bg-blue-500 text-white">{formatted}</Badge>;
-  }
-  return <Badge variant="outline">{formatted}</Badge>;
-};
-
+    if (seatType.toLowerCase() === 'floating') {
+      return <Badge className="bg-yellow-500 text-white">{formatted}</Badge>;
+    }
+    if (seatType.toLowerCase() === 'fixed') {
+      return <Badge className="bg-blue-500 text-white">{formatted}</Badge>;
+    }
+    return <Badge variant="outline">{formatted}</Badge>;
+  };
 
   const formatDate = (dateString: string) =>
     dateString ? new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-';
@@ -218,50 +220,48 @@ export const UsersManagement = () => {
     return sortConfig.direction === 'asc' ? ' ▲' : ' ▼';
   };
 
+  const sortedUsers = [...userData].sort((a, b) => {
+    if (!sortConfig) return 0;
+    const { key, direction } = sortConfig;
+    let valA: any = a[key];
+    let valB: any = b[key];
 
-const sortedUsers = [...userData].sort((a, b) => {
-  if (!sortConfig) return 0;
-  const { key, direction } = sortConfig;
-  let valA: any = a[key];
-  let valB: any = b[key];
+    if (key === 'status') {
+      const computeStatus = (user: any) => {
+        if (!user.approved) return 'Pending';
+        if (!user.validity_from || !user.validity_to) return 'Approved';
+        const today = new Date();
+        const validFrom = new Date(user.validity_from);
+        const validTo = new Date(user.validity_to);
+        if (today < validFrom) return 'Future Valid';
+        if (today > validTo) return 'Expired';
+        return 'Active';
+      };
+      valA = computeStatus(a);
+      valB = computeStatus(b);
+    }
 
-  // Handle status sorting separately
-  if (key === 'status') {
-    const computeStatus = (user: any) => {
-      if (!user.approved) return 'Pending';
-      if (!user.validity_from || !user.validity_to) return 'Approved';
-      const today = new Date();
-      const validFrom = new Date(user.validity_from);
-      const validTo = new Date(user.validity_to);
-      if (today < validFrom) return 'Future Valid';
-      if (today > validTo) return 'Expired';
-      return 'Active';
-    };
-    valA = computeStatus(a);
-    valB = computeStatus(b);
-  }
+    if (valA === null || valA === undefined) valA = '';
+    if (valB === null || valB === undefined) valB = '';
 
-  if (valA === null || valA === undefined) valA = '';
-  if (valB === null || valB === undefined) valB = '';
+    if (typeof valA === 'string' && typeof valB === 'string') {
+      return direction === 'asc'
+        ? valA.localeCompare(valB)
+        : valB.localeCompare(valA);
+    }
 
-  if (typeof valA === 'string' && typeof valB === 'string') {
-    return direction === 'asc'
-      ? valA.localeCompare(valB)
-      : valB.localeCompare(valA);
-  }
+    if (typeof valA === 'number' && typeof valB === 'number') {
+      return direction === 'asc' ? valA - valB : valB - valA;
+    }
 
-  if (typeof valA === 'number' && typeof valB === 'number') {
-    return direction === 'asc' ? valA - valB : valB - valA;
-  }
+    if (key.includes('date') || key.includes('created') || key.includes('validity')) {
+      const dateA = new Date(valA).getTime();
+      const dateB = new Date(valB).getTime();
+      return direction === 'asc' ? dateA - dateB : dateB - dateA;
+    }
 
-  if (key.includes('date') || key.includes('created') || key.includes('validity')) {
-    const dateA = new Date(valA).getTime();
-    const dateB = new Date(valB).getTime();
-    return direction === 'asc' ? dateA - dateB : dateB - dateA;
-  }
-
-  return 0;
-});
+    return 0;
+  });
 
   const filteredUsers = sortedUsers.filter(u =>
     u.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -281,10 +281,10 @@ const sortedUsers = [...userData].sort((a, b) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            All Users Management
+            Fixed Users Management
           </CardTitle>
           <CardDescription>
-            Manage user approvals, validity periods, and view transaction history
+            Manage fixed users, approvals, validity periods, and view transaction history
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -298,7 +298,7 @@ const sortedUsers = [...userData].sort((a, b) => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>S.No.</TableHead>
+              	<TableHead>S.No.</TableHead>
                 <TableHead onClick={() => handleSort('name')} className="cursor-pointer">
                   Name{getSortIndicator('name')}
                 </TableHead>
@@ -324,7 +324,7 @@ const sortedUsers = [...userData].sort((a, b) => {
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody> 
               {filteredUsers.map((user, index) => (
                 <TableRow key={user.id}>
                   <TableCell>{index + 1}</TableCell> {/* 👈 Serial No. */}
@@ -364,6 +364,7 @@ const sortedUsers = [...userData].sort((a, b) => {
               <Card>
                 <CardHeader><CardTitle>User Information</CardTitle></CardHeader>
                 <CardContent className="grid grid-cols-2 gap-4">
+
                   <div><Label>Name</Label><p className="font-medium">{selectedUser.name}</p></div>
                   <div><Label>Email</Label><p className="font-medium">{selectedUser.email}</p></div>
                   <div><Label>Phone</Label><p className="font-medium">{selectedUser.phone}</p></div>
@@ -372,7 +373,6 @@ const sortedUsers = [...userData].sort((a, b) => {
                   <div><Label>Validity End</Label><p>{selectedUser.validity_to ? formatDate(selectedUser.validity_to) : '-'}</p></div>
                   <div><Label>Days Remaining</Label><p>{selectedUser.days_remaining != null ? selectedUser.days_remaining : '-'}</p></div>
                   <div>{getSeatTypeBadge(selectedUser.seat_type)}</div>
-
                 </CardContent>
               </Card>
 

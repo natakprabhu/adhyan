@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import NewMembershipBookingWizard from '@/components/NewMembershipBookingWizard';
+
 import { 
   Users, 
   MapPin, 
