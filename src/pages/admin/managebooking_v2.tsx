@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+
 import {
   Card,
   CardContent,
@@ -91,18 +92,20 @@ export const ManageBookings = () => {
   const [editMembershipStartInput, setEditMembershipStartInput] = useState<string>(""); // date
   const [editMembershipEndInput, setEditMembershipEndInput] = useState<string>(""); // date
 
+
+  // Seat release dialog
+  const [isReleaseSeatOpen, setIsReleaseSeatOpen] = useState(false);
+  const [releaseSeatNumber, setReleaseSeatNumber] = useState<number | "">("");
+  const [isReleasing, setIsReleasing] = useState(false);
+
   // Filters + pagination
   const [filter, setFilter] = useState<"all" | "pending" | "confirmed">("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 50;
 
   useEffect(() => {
     fetchBookings();
   }, [filter]);
-
-  /** ----------------------- helper date helpers ----------------------- **/
-  // convert ISO to input type="datetime-local" (local tz)
-
 
 
   // For date-only booking fields (membership_start_date, membership_end_date)
@@ -242,41 +245,69 @@ export const ManageBookings = () => {
     setIsBookingEditOpen(true);
   };
 
-  const handleBookingSave = async () => {
-    if (!editBooking) return;
-    try {
-      // build updates from editBooking + date inputs
-      const updates: any = {
-        status: editBooking.status,
-        payment_status: editBooking.payment_status,
-        admin_notes: editBooking.admin_notes ?? null,
-      };
+const handleBookingSave = async () => {
+  if (!editBooking) return;
 
-      if (editBookingStartInput) updates.start_time = inputDateToDB(editBookingStartInput);
-      if (editBookingEndInput) updates.end_time = inputDateToDB(editBookingEndInput);
-      if (editMembershipStartInput) updates.membership_start_date = inputDateToDB(editMembershipStartInput);
-      if (editMembershipEndInput) updates.membership_end_date = inputDateToDB(editMembershipEndInput);
+  try {
+    const updates: any = {
+      status: editBooking.status,
+      payment_status: editBooking.payment_status,
+      admin_notes: editBooking.admin_notes ?? null,
+    };
 
-      console.log("💾 handleBookingSave updates:", updates);
+    // ✅ membership_start_date / end_date are plain "YYYY-MM-DD"
+    if (editMembershipStartInput) updates.membership_start_date = editMembershipStartInput;
+    if (editMembershipEndInput) updates.membership_end_date = editMembershipEndInput;
 
-      const { error } = await supabase.from("bookings").update(updates).eq("id", editBooking.id);
-      if (error) throw error;
-
-      toast({ title: "Success", description: "Booking saved." });
-      setIsBookingEditOpen(false);
-      // refresh both booking list and selected booking info
-      await fetchBookings();
-      if (selectedBooking && selectedBooking.id === editBooking.id) {
-        const { data } = await supabase.from("bookings").select("*").eq("id", editBooking.id).single();
-        setSelectedBooking(data as Booking);
-      }
-    } catch (err) {
-      console.error("❌ handleBookingSave error:", err);
-      toast({ title: "Error", description: "Failed to save booking.", variant: "destructive" });
+    // ✅ auto-sync start_time / end_time from membership dates
+    if (editMembershipStartInput) {
+      updates.start_time = new Date(editMembershipStartInput + "T23:59:59").toISOString();
     }
-  };
+    if (editMembershipEndInput) {
+      updates.end_time = new Date(editMembershipEndInput + "T23:59:59").toISOString();
+    }
 
-  /** ----------------------- Transaction edit handlers ----------------------- **/
+    console.log("💾 handleBookingSave updates:", updates);
+    console.log("🟢 handleBookingSave debug:");
+    console.log("editBooking:", editBooking);
+    console.log("editMembershipStartInput:", editMembershipStartInput);
+    console.log("editMembershipEndInput:", editMembershipEndInput);
+    console.log("Computed updates object:", updates);
+    console.log("start_time (ISO):", updates.start_time);
+    console.log("end_time (ISO):", updates.end_time);
+    console.log("membership_start_date:", updates.membership_start_date);
+    console.log("membership_end_date:", updates.membership_end_date);
+        
+    const { error } = await supabase
+      .from("bookings")
+      .update(updates)
+      .eq("id", editBooking.id);
+
+    if (error) throw error;
+
+    toast({ title: "Success", description: "Booking saved." });
+    setIsBookingEditOpen(false);
+
+    await fetchBookings();
+
+    if (selectedBooking && selectedBooking.id === editBooking.id) {
+      const { data } = await supabase
+        .from("bookings")
+        .select("*")
+        .eq("id", editBooking.id)
+        .single();
+      setSelectedBooking(data as Booking);
+    }
+  } catch (err) {
+    console.error("❌ handleBookingSave error:", err);
+    toast({
+      title: "Error",
+      description: "Failed to save booking.",
+      variant: "destructive",
+    });
+  }
+};
+
   const handleTxnEdit = (txn: Transaction) => {
     console.log("🟢 handleTxnEdit", txn.id);
     setEditTxn({ ...txn });
@@ -338,10 +369,10 @@ export const ManageBookings = () => {
       // Build booking updates if admin changed any booking dates / admin note
       const bookingUpdates: any = { payment_status: "paid" };
       if (paymentAdminNote) bookingUpdates.admin_notes = paymentAdminNote;
-      if (editBookingStartInput) bookingUpdates.start_time = inputDateTimeLocalToISO(editBookingStartInput);
-      if (editBookingEndInput) bookingUpdates.end_time = inputDateTimeLocalToISO(editBookingEndInput);
-      if (editMembershipStartInput) bookingUpdates.membership_start_date = inputDateToISO(editMembershipStartInput);
-      if (editMembershipEndInput) bookingUpdates.membership_end_date = inputDateToISO(editMembershipEndInput);
+      if (editBookingStartInput) bookingUpdates.start_time = isoToInputDateSimple(editBookingStartInput);
+      if (editBookingEndInput) bookingUpdates.end_time = isoToInputDateSimple(editBookingEndInput);
+      if (editMembershipStartInput) bookingUpdates.membership_start_date = isoToInputDateSimple(editMembershipStartInput);
+      if (editMembershipEndInput) bookingUpdates.membership_end_date = isoToInputDateSimple(editMembershipEndInput);
 
       console.log("▶️ handlePaymentSubmit bookingUpdates:", bookingUpdates);
 
@@ -379,13 +410,114 @@ export const ManageBookings = () => {
     }
   };
 
+  const releaseSeat = async () => {
+  if (!releaseSeatNumber) {
+    toast({ title: "Error", description: "Enter a seat number.", variant: "destructive" });
+    return;
+  }
+
+  try {
+    setIsReleasing(true);
+
+    // 1️⃣ Find active booking for this seat
+    const { data: booking, error: fetchError } = await supabase
+      .from("bookings")
+      .select("*")
+      .eq("seats.seat_number", releaseSeatNumber)
+      .gte("end_time", new Date().toISOString())
+      .limit(1)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!booking) {
+      toast({ title: "Info", description: "No active booking found for this seat.", variant: "default" });
+      setIsReleasing(false);
+      return;
+    }
+
+    // 2️⃣ Set booking end_time to yesterday
+    const yesterdayISO = new Date(new Date().setDate(new Date().getDate() - 1)).toISOString();
+    const { error: updateError } = await supabase
+      .from("bookings")
+      .update({ end_time: yesterdayISO })
+      .eq("id", booking.id);
+
+    if (updateError) throw updateError;
+
+    // 3️⃣ Insert zero-amount transaction for audit
+    await supabase.from("transactions").insert({
+      booking_id: booking.id,
+      user_id: booking.user_id,
+      amount: 0,
+      status: "completed",
+      admin_notes: `Seat released. Booking end truncated to ${yesterdayISO.slice(0, 10)}`
+    });
+
+    toast({ title: "Success", description: `Seat ${releaseSeatNumber} released.` });
+    setIsReleaseSeatOpen(false);
+    setReleaseSeatNumber("");
+    fetchBookings();
+  } catch (err) {
+    console.error("❌ releaseSeat error:", err);
+    toast({ title: "Error", description: "Failed to release seat.", variant: "destructive" });
+  } finally {
+    setIsReleasing(false);
+  }
+};
+
+
   const formatDate = (dateString?: string) =>
     dateString ? new Date(dateString).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "-";
 
-  const paginatedBookings = bookings.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+ 
+    const [sortConfig, setSortConfig] = useState<{
+      key: keyof Booking | "users" | "seats";
+      direction: "asc" | "desc";
+    } | null>(null);
+
+    const handleSort = (key: keyof Booking | "users" | "seats") => {
+      if (sortConfig?.key === key) {
+        setSortConfig({ key, direction: sortConfig.direction === "asc" ? "desc" : "asc" });
+      } else {
+        setSortConfig({ key, direction: "asc" });
+      }
+    };
+
+
+    const sortedBookings = [...bookings].sort((a, b) => {
+      if (!sortConfig) return 0;
+      const { key, direction } = sortConfig;
+
+      let valA: any, valB: any;
+
+      // Nested keys handling
+      if (key === "users") {
+        valA = a.users?.name ?? "";
+        valB = b.users?.name ?? "";
+      } else if (key === "seats") {
+        valA = a.seats?.seat_number ?? 0;
+        valB = b.seats?.seat_number ?? 0;
+      } else {
+        valA = a[key] ?? "";
+        valB = b[key] ?? "";
+      }
+
+      if (typeof valA === "number" && typeof valB === "number") {
+        return direction === "asc" ? valA - valB : valB - valA;
+      }
+
+      return direction === "asc"
+        ? String(valA).localeCompare(String(valB))
+        : String(valB).localeCompare(String(valA));
+    });
+
+    // Apply pagination **after sorting**
+    const paginatedBookings = sortedBookings.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    );
+
+
 
   if (isLoading) {
     return (
@@ -399,11 +531,17 @@ export const ManageBookings = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Manage Bookings
-          </CardTitle>
-          <CardDescription>Review and manage bookings & transactions</CardDescription>
+         <div className="flex justify-between items-center">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Manage Bookings
+            </CardTitle>
+            <CardDescription>Review and manage bookings & transactions</CardDescription>
+          </div>
+        </div>
+
+
         </CardHeader>
 
         <CardContent>
@@ -418,14 +556,30 @@ export const ManageBookings = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Seat</TableHead>
-                <TableHead>Validity</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Payment</TableHead>
+                <TableHead className="cursor-pointer" onClick={() => handleSort("users")}>
+                  User {sortConfig?.key === "users" ? (sortConfig.direction === "asc" ? "▲" : "▼") : ""}
+                </TableHead>
+
+                <TableHead className="cursor-pointer" onClick={() => handleSort("seats")}>
+                  Seat {sortConfig?.key === "seats" ? (sortConfig.direction === "asc" ? "▲" : "▼") : ""}
+                </TableHead>
+
+                <TableHead className="cursor-pointer" onClick={() => handleSort("membership_start_date")}>
+                  Validity {sortConfig?.key === "membership_start_date" ? (sortConfig.direction === "asc" ? "▲" : "▼") : ""}
+                </TableHead>
+
+                <TableHead className="cursor-pointer" onClick={() => handleSort("status")}>
+                  Status {sortConfig?.key === "status" ? (sortConfig.direction === "asc" ? "▲" : "▼") : ""}
+                </TableHead>
+
+                <TableHead className="cursor-pointer" onClick={() => handleSort("payment_status")}>
+                  Payment {sortConfig?.key === "payment_status" ? (sortConfig.direction === "asc" ? "▲" : "▼") : ""}
+                </TableHead>
+
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
+
             <TableBody>
               {paginatedBookings.map((booking) => (
                 <TableRow key={booking.id}>
@@ -500,11 +654,11 @@ export const ManageBookings = () => {
                   </div>
                   <div>
                     <Label>Start</Label>
-                    <div>{formatDate(selectedBooking.start_time)}</div>
+                    <div>{formatDate(selectedBooking.membership_start_date)}</div>
                   </div>
                   <div>
                     <Label>End</Label>
-                    <div>{formatDate(selectedBooking.end_time)}</div>
+                    <div>{formatDate(selectedBooking.membership_end_date)}</div>
                   </div>
                   <div className="col-span-2">
                     <Label>Admin Notes</Label>
@@ -560,58 +714,75 @@ export const ManageBookings = () => {
       </Dialog>
 
       {/* ------------------ Booking Edit Dialog ------------------ */}
-      <Dialog open={isBookingEditOpen} onOpenChange={setIsBookingEditOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Edit Booking</DialogTitle>
-          </DialogHeader>
+<Dialog open={isBookingEditOpen} onOpenChange={setIsBookingEditOpen}>
+  <DialogContent className="max-w-lg">
+    <DialogHeader>
+      <DialogTitle>Edit Booking</DialogTitle>
+    </DialogHeader>
 
-          {editBooking && (
-            <div className="space-y-4">
-              <div>
-                <Label>Status</Label>
-                <Input value={editBooking.status} onChange={(e) => setEditBooking({ ...editBooking, status: e.target.value })} />
-              </div>
+    {editBooking && (
+      <div className="space-y-4">
+        <div>
+          <Label>Status</Label>
+          <Input
+            value={editBooking.status}
+            onChange={(e) =>
+              setEditBooking({ ...editBooking, status: e.target.value })
+            }
+          />
+        </div>
 
-              <div>
-                <Label>Payment Status</Label>
-                <Input value={editBooking.payment_status} onChange={(e) => setEditBooking({ ...editBooking, payment_status: e.target.value })} />
-              </div>
+        <div>
+          <Label>Payment Status</Label>
+          <Input
+            value={editBooking.payment_status}
+            onChange={(e) =>
+              setEditBooking({ ...editBooking, payment_status: e.target.value })
+            }
+          />
+        </div>
 
-              <div>
-                <Label>Admin Notes</Label>
-                <Textarea value={editBooking.admin_notes ?? ""} onChange={(e) => setEditBooking({ ...editBooking, admin_notes: e.target.value })} />
-              </div>
+        <div>
+          <Label>Admin Notes</Label>
+          <Textarea
+            value={editBooking.admin_notes ?? ""}
+            onChange={(e) =>
+              setEditBooking({ ...editBooking, admin_notes: e.target.value })
+            }
+          />
+        </div>
 
-              <div>
-                <Label>Start time</Label>
-                <Input type="datetime-local" value={editBookingStartInput} onChange={(e) => setEditBookingStartInput(e.target.value)} />
-              </div>
+        {/* Membership dates */}
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <Label>Membership start</Label>
+            <Input
+              type="date"
+              value={editMembershipStartInput}
+              onChange={(e) => setEditMembershipStartInput(e.target.value)}
+            />
+          </div>
+          <div className="flex-1">
+            <Label>Membership end</Label>
+            <Input
+              type="date"
+              value={editMembershipEndInput}
+              onChange={(e) => setEditMembershipEndInput(e.target.value)}
+            />
+          </div>
+        </div>
 
-              <div>
-                <Label>End time</Label>
-                <Input type="datetime-local" value={editBookingEndInput} onChange={(e) => setEditBookingEndInput(e.target.value)} />
-              </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={() => setIsBookingEditOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleBookingSave}>Save</Button>
+        </div>
+      </div>
+    )}
+  </DialogContent>
+</Dialog>
 
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <Label>Membership start</Label>
-                  <Input type="date" value={editMembershipStartInput} onChange={(e) => setEditMembershipStartInput(e.target.value)} />
-                </div>
-                <div className="flex-1">
-                  <Label>Membership end</Label>
-                  <Input type="date" value={editMembershipEndInput} onChange={(e) => setEditMembershipEndInput(e.target.value)} />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsBookingEditOpen(false)}>Cancel</Button>
-                <Button onClick={handleBookingSave}>Save</Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* ------------------ Transaction Edit Dialog ------------------ */}
       <Dialog open={isTxnEditOpen} onOpenChange={setIsTxnEditOpen}>
@@ -697,6 +868,10 @@ export const ManageBookings = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+
+
+
     </div>
   );
 };

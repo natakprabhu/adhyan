@@ -42,10 +42,17 @@ export const SeatLayout = () => {
         if (seatsError) throw seatsError;
         setSeats(seatsData || []);
 
+        const nowISO = new Date().toISOString();
+
         const { data: bookingsData, error: bookingsError } = await supabase
           .from("bookings")
           .select("*")
-          .eq("payment_status", "paid");
+          .eq("payment_status", "paid")
+          .eq("seat_category", "fixed")
+          .gte("membership_end_date", nowISO); // only bookings that haven't expired
+
+
+
         if (bookingsError) throw bookingsError;
         setBookings(bookingsData || []);
       } catch (err) {

@@ -2,155 +2,78 @@ import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UsersManagement } from './UsersManagement';
 import { BiometricManagement } from './BiometricManagement';
 import { GanttChart } from './GanttChart';
-import { ManageBookings } from './ManageBookings'; // 👈 new component
+import { ManageBookings } from './ManageBookings';
 import { FixedUsersManagement } from "./FixedUsersManagement";
 import { FloatingUsersManagement } from "./FloatingUsersManagement";
 import { LimitedUsersManagement } from "./LimitedUsersManagement";
 import { WalletManagement } from "./WalletManagement";
 import { SeatLayout } from "./SeatLayout";
-
+import { PasswordManager } from "./PasswordManager";
+import { ReleaseSeat } from "./ReleaseSeat";
 
 export const AdminDashboard = () => {
   const { user, role, loading } = useAuth();
 
   // Stats state
   const [stats, setStats] = useState({
-    revenue: 0,        // numeric sum
-    bookedSeats: 0,    // count
-    fixedSeats: 0,     // count
-    floatingSeats: 0,  // count
-    users: 0,          // total user count
+    revenue: 0,
+    bookedSeats: 0,
+    fixedSeats: 0,
+    floatingSeats: 0,
+    users: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
 
-  // format currency (INR)
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(amount);
-
-  // human month name & year for title
-  const monthName = new Date().toLocaleString("default", { month: "long" });
-  const year = new Date().getFullYear();
-
   const getCurrentMonthRange = () => {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0); // local start
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999); // local end of last day
-    return {
-      startDate: start.toISOString(),
-      endDate: end.toISOString(),
-    };
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    return { startDate: start.toISOString(), endDate: end.toISOString() };
   };
 
-const fetchStats = async () => {
-  try {
-    setStatsLoading(true);
-    const { startDate, endDate } = getCurrentMonthRange();
-
-    // 1) Revenue for current month
-    const { data: txnData, error: txnError } = await supabase
-      .from("transactions")
-      .select("amount, created_at")
-      .gte("created_at", startDate)
-      .lte("created_at", endDate);
-
-    if (txnError) throw txnError;
-    const revenue = (txnData ?? []).reduce(
-      (sum: number, t: any) => sum + Number(t.amount || 0),
-      0
-    );
-
-    // 2) Booked seats (status=booked + paid)
-    const bookedRes = await supabase
-      .from("bookings")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "booked")
-      .eq("payment_status", "paid");
-    const bookedSeats = bookedRes.count ?? 0;
-
-    // 3) Fixed seats (seat_category=fixed + paid)
-    const fixedRes = await supabase
-      .from("bookings")
-      .select("*", { count: "exact", head: true })
-      .eq("seat_category", "fixed")
-      .eq("payment_status", "paid");
-    const fixedSeats = fixedRes.count ?? 0;
-
-    // 4) Floating seats (seat_category=floating + paid)
-    const floatRes = await supabase
-      .from("bookings")
-      .select("*", { count: "exact", head: true })
-      .eq("seat_category", "floating")
-      .eq("payment_status", "paid");
-    const floatingSeats = floatRes.count ?? 0;
-
-    // 5) Total users
-    const usersRes = await supabase
-      .from("users")
-      .select("*", { count: "exact", head: true });
-    const users = usersRes.count ?? 0;
-
-    setStats({ revenue, bookedSeats, fixedSeats, floatingSeats, users });
-  } catch (err) {
-    console.error("❌ fetchStats error:", err);
-  } finally {
-    setStatsLoading(false);
-  }
-};
-
-  useEffect(() => {
+  // Fetch stats
   const fetchStats = async () => {
     try {
       setStatsLoading(true);
       const { startDate, endDate } = getCurrentMonthRange();
 
-      // 1) Revenue for current month
       const { data: txnData, error: txnError } = await supabase
         .from("transactions")
         .select("amount, created_at")
         .gte("created_at", startDate)
         .lte("created_at", endDate);
-
       if (txnError) throw txnError;
-      const revenue = (txnData ?? []).reduce((sum, t: any) => sum + Number(t.amount || 0), 0);
 
-      // 2) Booked seats count (adjust status filter if your schema uses different status)
-      const bookedRes = await supabase
-            .from("bookings")
-            .select("*", { count: "exact", head: true })
-            .eq("payment_status", "paid");
-      const bookedSeats = bookedRes.count ?? 0;
+      const revenue = (txnData ?? []).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
 
-      // 3) Fixed seats (seat_category=fixed + paid)
-      const fixedRes = await supabase
-        .from("bookings")
-        .select("*", { count: "exact", head: true })
+      const { count: bookedCount } = await supabase.from("bookings")
+        .select("id", { count: "exact" })
+        .eq("status", "confirmed")
+        .eq("payment_status", "paid");
+
+      const { count: fixedCount } = await supabase.from("bookings")
+        .select("id", { count: "exact" })
         .eq("seat_category", "fixed")
         .eq("payment_status", "paid");
-      const fixedSeats = fixedRes.count ?? 0;
 
-      // 4) Floating seats (seat_category=floating + paid)
-      const floatRes = await supabase
-        .from("bookings")
-        .select("*", { count: "exact", head: true })
+      const { count: floatCount } = await supabase.from("bookings")
+        .select("id", { count: "exact" })
         .eq("seat_category", "floating")
         .eq("payment_status", "paid");
-      const floatingSeats = floatRes.count ?? 0;
 
-      // 5) Total users
-      const usersRes = await supabase.from("users").select("*", { count: "exact", head: true });
-      const users = usersRes.count ?? 0;
+      const usersRes = await supabase.from("users")
+        .select("*", { count: "exact", head: true });
 
       setStats({
         revenue,
-        bookedSeats,
-        fixedSeats,
-        floatingSeats,
-        users,
+        bookedSeats: bookedCount ?? 0,
+        fixedSeats: fixedCount ?? 0,
+        floatingSeats: floatCount ?? 0,
+        users: usersRes.count ?? 0,
       });
     } catch (err) {
       console.error("❌ fetchStats error:", err);
@@ -159,10 +82,13 @@ const fetchStats = async () => {
     }
   };
 
-  fetchStats();
-  // optionally add dependencies if you want to refresh on something: [filter, ...]
-}, []);
+  useEffect(() => { fetchStats(); }, []);
 
+  // Logout
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/auth";
+  };
 
   // Redirect if not admin
   if (loading) return <div>Loading...</div>;
@@ -170,88 +96,91 @@ const fetchStats = async () => {
   if (role !== 'admin') return <Navigate to="/home" replace />;
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
-
-      {/* Stats cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="p-4 bg-white shadow rounded">
-          <h3 className="text-sm text-gray-500">Revenue ({monthName} {year})</h3>
-          <p className="text-2xl font-bold">0</p>
+    <div className="h-screen flex flex-col bg-gray-50">
+      {/* Sticky Header with Logo and Tagline */}
+      <header className="sticky top-0 z-50 bg-white shadow-md px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center space-x-6">
+          {/* Logo and Tagline */}
+          <div className="flex items-center space-x-4">
+            <img
+              src="/lovable-uploads/082b41c8-f84f-44f0-9084-137a3e9cbfe2.png"
+              alt="Adhyan Library Logo"
+              className="h-16 w-auto"
+            />
+            <div className="flex flex-col">
+              <h1 className="text-2xl font-bold text-gray-800">Adhyan Library</h1>
+              <p className="text-sm text-gray-500">A Peaceful Space for Powerful Minds</p>
+            </div>
+          </div>
         </div>
 
-        <div className="p-4 bg-white shadow rounded">
-          <h3 className="text-sm text-gray-500">Total Booked Seats</h3>
-          <p className="text-2xl font-bold">{statsLoading ? "—" : stats.bookedSeats}</p>
-        </div>
+        {/* Logout Button */}
+        <button
+          onClick={handleLogout}
+          className="flex items-center space-x-2 px-3 py-1 bg-red-500 text-white rounded-full text-sm font-medium hover:bg-red-600 transition"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1m0-10V5" />
+          </svg>
+          <span>Logout</span>
+        </button>
 
-        <div className="p-4 bg-white shadow rounded">
-          <h3 className="text-sm text-gray-500">Fixed Seats</h3>
-          <p className="text-2xl font-bold">{statsLoading ? "—" : stats.fixedSeats}</p>
-        </div>
+      </header>
 
-        <div className="p-4 bg-white shadow rounded">
-          <h3 className="text-sm text-gray-500">Floating Seats</h3>
-          <p className="text-2xl font-bold">{statsLoading ? "—" : stats.floatingSeats}</p>
-        </div>
+      {/* Main Content */}
+      <main className="flex-1 overflow-auto p-6">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          <div className="p-6 bg-primary text-white shadow-lg rounded-xl flex flex-col justify-between hover:shadow-2xl transition">
+            <h3 className="text-sm opacity-80">Total Users</h3>
+            <p className="text-3xl font-bold mt-2">{statsLoading ? "—" : stats.users}</p>
+          </div>
 
-        <div className="p-4 bg-white shadow rounded col-span-1 sm:col-span-2 lg:col-span-4">
-          <h3 className="text-sm text-gray-500">Total Users</h3>
-          <p className="text-2xl font-bold">{statsLoading ? "—" : stats.users}</p>
+          <div className="p-6 bg-white shadow-lg rounded-xl flex flex-col justify-between hover:shadow-2xl transition">
+            <h3 className="text-sm text-gray-500">Total Booked Seats</h3>
+            <p className="text-3xl font-bold mt-2">{statsLoading ? "—" : stats.bookedSeats}</p>
+          </div>
+
+          <div className="p-6 bg-white shadow-lg rounded-xl flex flex-col justify-between hover:shadow-2xl transition">
+            <h3 className="text-sm text-gray-500">Fixed Seats</h3>
+            <p className="text-3xl font-bold mt-2">{statsLoading ? "—" : stats.fixedSeats}</p>
+          </div>
+
+          <div className="p-6 bg-white shadow-lg rounded-xl flex flex-col justify-between hover:shadow-2xl transition">
+            <h3 className="text-sm text-gray-500">Floating Seats</h3>
+            <p className="text-3xl font-bold mt-2">{statsLoading ? "—" : stats.floatingSeats}</p>
+          </div>
         </div>
-      </div>
 
         <Tabs defaultValue="bookings" className="w-full">
-          <TabsList className="grid grid-cols-9 w-full gap-1">
-            <TabsTrigger value="bookings">Bookings</TabsTrigger>
-            <TabsTrigger value="users">All Users</TabsTrigger>
-            <TabsTrigger value="fixed-users">Fixed Users</TabsTrigger>
-            <TabsTrigger value="floating-users">Floating Users</TabsTrigger>
-            <TabsTrigger value="limited-users">Limited Hours Users</TabsTrigger>
-            <TabsTrigger value="biometric">Biometric</TabsTrigger>
-            <TabsTrigger value="schedule">Seat Status</TabsTrigger>
-            <TabsTrigger value="layout">Seat Layout</TabsTrigger>
-            <TabsTrigger value="wallet">Wallet</TabsTrigger>
-          </TabsList>
+  <TabsList className="flex flex-wrap w-full gap-1 mb-4 border-b border-gray-200">
+    <TabsTrigger value="bookings">Bookings</TabsTrigger>
+    <TabsTrigger value="users">All Users</TabsTrigger>
+    <TabsTrigger value="fixed-users">Fixed Users</TabsTrigger>
+    <TabsTrigger value="floating-users">Floating Users</TabsTrigger>
+    <TabsTrigger value="limited-users">Limited Hours Users</TabsTrigger>
+    <TabsTrigger value="biometric">Biometric</TabsTrigger>
+    <TabsTrigger value="schedule">Seat Status</TabsTrigger>
+    <TabsTrigger value="layout">Seat Layout</TabsTrigger>
+    <TabsTrigger value="wallet">Wallet</TabsTrigger>
+    <TabsTrigger value="passwords">Password Manager</TabsTrigger>
+    <TabsTrigger value="release-seat">Release Seat</TabsTrigger> {/* New Tab */}
+  </TabsList>
 
-          {/* Tabs Content */}
-          <TabsContent value="bookings">
-            <ManageBookings /> {/* bookings CRUD */}
-          </TabsContent>
+  <TabsContent value="bookings"><ManageBookings /></TabsContent>
+  <TabsContent value="users"><UsersManagement /></TabsContent>
+  <TabsContent value="fixed-users"><FixedUsersManagement /></TabsContent>
+  <TabsContent value="floating-users"><FloatingUsersManagement /></TabsContent>
+  <TabsContent value="limited-users"><LimitedUsersManagement /></TabsContent>
+  <TabsContent value="biometric"><BiometricManagement /></TabsContent>
+  <TabsContent value="schedule"><GanttChart /></TabsContent>
+  <TabsContent value="layout"><SeatLayout /></TabsContent>
+  <TabsContent value="wallet"><WalletManagement /></TabsContent>
+  <TabsContent value="passwords"><PasswordManager /></TabsContent>
+  <TabsContent value="release-seat"><ReleaseSeat /></TabsContent> {/* New Tab */}
+</Tabs>
 
-          <TabsContent value="users">
-            <UsersManagement />
-          </TabsContent>
-
-          <TabsContent value="fixed-users">
-            <FixedUsersManagement />
-          </TabsContent>
-
-          <TabsContent value="floating-users">
-            <FloatingUsersManagement />
-          </TabsContent>
-
-          <TabsContent value="limited-users">
-            <LimitedUsersManagement />
-          </TabsContent>
-
-          <TabsContent value="biometric">
-            <BiometricManagement />
-          </TabsContent>
-
-          <TabsContent value="schedule">
-            <GanttChart />
-          </TabsContent>
-
-          <TabsContent value="layout">
-            <SeatLayout /> {/* Seat layout grid */}
-          </TabsContent>
-
-          <TabsContent value="wallet">
-            <WalletManagement /> {/* Wallet tab component */}
-          </TabsContent>
-        </Tabs>
-
+      </main>
     </div>
   );
 };
