@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,21 +55,6 @@ const PasswordInput = ({
 export default function Auth() {
   const { user, loading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [registrationSuccess, setRegistrationSuccess] = useState(false);
-  const [countdown, setCountdown] = useState(5);
-  const navigate = useNavigate();
-
-  // ⏳ Handle countdown redirect
-  useEffect(() => {
-    if (registrationSuccess) {
-      if (countdown === 0) {
-        navigate("/home");
-      } else {
-        const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [registrationSuccess, countdown, navigate]);
 
   if (loading) {
     return (
@@ -79,24 +64,8 @@ export default function Auth() {
     );
   }
 
-  // 🚨 Important: don’t auto-redirect if signup just succeeded
-  if (user && !registrationSuccess) {
+  if (user) {
     return <Navigate to="/home" replace />;
-  }
-
-  // ✅ Registration success screen
-  if (registrationSuccess) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-white">
-        <h1 className="text-2xl font-bold mb-4">
-          Registration Completed Successfully 🎉
-        </h1>
-        <p className="text-lg">
-          Redirecting to homepage in{" "}
-          <span className="font-bold">{countdown}</span> seconds...
-        </p>
-      </div>
-    );
   }
 
   // ✅ Sign In
@@ -145,18 +114,7 @@ export default function Auth() {
     const name = formData.get("name") as string;
     const phone = formData.get("phone") as string;
     const password = formData.get("password") as string;
-    const confirmPassword = formData.get("confirmPassword") as string;
     const emailInput = formData.get("email") as string;
-
-    if (password !== confirmPassword) {
-      toast({
-        title: "Password Mismatch",
-        description: "Passwords do not match. Please try again.",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-      return;
-    }
 
     if (!validatePhone(phone)) {
       toast({
@@ -168,10 +126,8 @@ export default function Auth() {
       return;
     }
 
-    const email =
-      emailInput && emailInput.length > 0
-        ? emailInput
-        : `${phone}@adhyanlib.com`;
+    // fallback email if not provided
+    const email = emailInput && emailInput.length > 0 ? emailInput : `${phone}@adhyanlib.com`;
 
     const { error } = await supabase.auth.signUp({
       email,
@@ -193,8 +149,10 @@ export default function Auth() {
         variant: "destructive",
       });
     } else {
-      // ✅ Show success screen with countdown
-      setRegistrationSuccess(true);
+      toast({
+        title: "Account Created",
+        description: "You can now sign in using your phone number.",
+      });
     }
 
     setIsLoading(false);
@@ -210,9 +168,7 @@ export default function Auth() {
               alt="Adhyan Library Logo"
               className="h-16 w-auto"
             />
-            <CardDescription>
-              A Peaceful Space for Powerful Minds
-            </CardDescription>
+            <CardDescription>A Peaceful Space for Powerful Minds</CardDescription>
           </div>
         </CardHeader>
         <CardContent>
@@ -246,14 +202,11 @@ export default function Auth() {
                     placeholder="Enter your password"
                   />
                 </div>
-                <Button
-                  type="submit"
-                  className="w-full h-12"
-                  disabled={isLoading}
-                >
+                <Button type="submit" className="w-full h-12" disabled={isLoading}>
                   {isLoading ? "Signing In..." : "Sign In"}
                 </Button>
 
+                {/* ✅ Forgot password link */}
                 <div className="text-center mt-2">
                   <a
                     href="/reset-password"
@@ -310,19 +263,7 @@ export default function Auth() {
                     placeholder="Create a password"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
-                  <PasswordInput
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    placeholder="Re-enter your password"
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full h-12"
-                  disabled={isLoading}
-                >
+                <Button type="submit" className="w-full h-12" disabled={isLoading}>
                   {isLoading ? "Creating Account..." : "Create Account"}
                 </Button>
               </form>

@@ -170,9 +170,9 @@ export default function Home() {
           Hello, {userProfile?.name || 'Loading...'}!
         </p>
       </div>
-      <div className="fixed top-4 right-4 z-5">
+{/*      <div className="fixed top-4 right-4 z-5">
         <RulesModal />
-      </div>
+      </div>*/}
       {userProfile && !userProfile.approved && (
         <Card className="border-amber-200 bg-amber-50">
           <CardContent className="pt-6">
