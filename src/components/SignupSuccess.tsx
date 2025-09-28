@@ -2,12 +2,17 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function SignupSuccess() {
   const [countdown, setCountdown] = useState(3);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
+    // Wait for user to be authenticated before starting countdown
+    if (!user) return;
+    
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
@@ -20,7 +25,7 @@ export default function SignupSuccess() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [navigate]);
+  }, [navigate, user]);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
@@ -37,11 +42,17 @@ export default function SignupSuccess() {
           <p className="text-muted-foreground">
             Your account has been successfully created.
           </p>
-          <div className="text-lg font-semibold">
-            Navigating to home page in{' '}
-            <span className="text-primary text-2xl">{countdown}</span>{' '}
-            seconds...
-          </div>
+          {user ? (
+            <div className="text-lg font-semibold">
+              Navigating to home page in{' '}
+              <span className="text-primary text-2xl">{countdown}</span>{' '}
+              seconds...
+            </div>
+          ) : (
+            <div className="text-lg font-semibold">
+              Setting up your account...
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
