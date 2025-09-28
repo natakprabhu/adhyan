@@ -87,7 +87,7 @@ export default function Auth() {
       return;
     }
 
-    const email = `${phone}@adhyanlib.com`;
+    const email = `${phone}@noemail.supabase`;
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -127,7 +127,7 @@ export default function Auth() {
     }
 
     // fallback email if not provided
-    const email = emailInput && emailInput.length > 0 ? emailInput : `${phone}@adhyanlib.com`;
+    const email = emailInput && emailInput.length > 0 ? emailInput : `${phone}@noemail.supabase`;
 
     const { error } = await supabase.auth.signUp({
       email,
