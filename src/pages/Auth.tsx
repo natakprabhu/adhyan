@@ -87,7 +87,7 @@ export default function Auth() {
       return;
     }
 
-    const email = `${phone}@adhyanlib.com`;
+    const email = `${phone}@supabase.local`;
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
