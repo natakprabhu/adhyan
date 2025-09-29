@@ -96,9 +96,18 @@ export const SeatLayout = () => {
 
   return (
     <Card className="bg-white p-4 shadow-md">
-      
-
-      <CardContent>
+          <CardContent className="relative">
+            {/* Legend */}
+            <div className="absolute top-2 right-2 flex gap-4 bg-white/80 px-3 py-1 rounded shadow text-xs">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-green-500 rounded"></div>
+                Available
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-red-500 rounded"></div>
+                Fixed Booked
+              </div>
+            </div>
         <div className="flex w-full items-stretch gap-2 justify-center flex-wrap md:flex-nowrap">
           {/* Left Zone */}
           <div className="flex flex-col">
@@ -108,7 +117,6 @@ export const SeatLayout = () => {
               </div>
             ))}
           </div>
-
           {/* Right Zone */}
           <div className="flex flex-col items-end">
             {rightRows.map((row, i) => (
