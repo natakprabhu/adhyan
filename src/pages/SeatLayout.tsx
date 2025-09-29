@@ -42,17 +42,10 @@ export const SeatLayout = () => {
         if (seatsError) throw seatsError;
         setSeats(seatsData || []);
 
-        const nowISO = new Date().toISOString();
-
         const { data: bookingsData, error: bookingsError } = await supabase
           .from("bookings")
           .select("*")
-          .eq("payment_status", "paid")
-          .eq("seat_category", "fixed")
-          .gte("membership_end_date", nowISO); // only bookings that haven't expired
-
-
-
+          .eq("payment_status", "paid");
         if (bookingsError) throw bookingsError;
         setBookings(bookingsData || []);
       } catch (err) {
@@ -103,6 +96,8 @@ export const SeatLayout = () => {
 
   return (
     <Card className="bg-white p-4 shadow-md">
+      
+
       <CardContent>
         <div className="flex w-full items-stretch gap-2 justify-center flex-wrap md:flex-nowrap">
           {/* Left Zone */}
@@ -112,26 +107,6 @@ export const SeatLayout = () => {
                 {row.map((label) => renderSeat(label))}
               </div>
             ))}
-
-            {/* Legend just below left section */}
-            <div className="flex gap-4 mt-2">
-              <div className="flex items-center gap-1">
-                <div className="w-4 h-4 bg-green-500 rounded"></div> Available
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-4 h-4 bg-red-500 rounded"></div> Fixed Booked
-              </div>
-            </div>
-          </div>
-
-          {/* Passage */}
-          <div className="relative w-10 flex flex-col justify-start items-center self-stretch">
-            <div className="absolute top-0 bottom-0 left-1 w-px border-l-2 border-dotted border-gray-400"></div>
-            <div className="absolute top-0 bottom-0 right-1 w-px border-l-2 border-dotted border-gray-400"></div>
-            <div className="rotate-90 text-xs md:text-sm text-gray-500 absolute top-1/3">
-              Passage
-            </div>
-            <EntryArrow />
           </div>
 
           {/* Right Zone */}
@@ -141,7 +116,6 @@ export const SeatLayout = () => {
                 {row.map((label) => renderSeat(label))}
               </div>
             ))}
-
             {/* Pantry */}
             <div className="mt-4 w-full h-16 bg-gray-100 flex items-center justify-center border border-gray-300 rounded-md">
               <span className="text-gray-700 text-sm font-medium">Pantry</span>
