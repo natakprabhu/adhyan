@@ -402,8 +402,8 @@ const handleUpdateProfile = async (e: React.FormEvent<HTMLFormElement>) => {
                     {tx.booking && (
                       <div className="flex flex-wrap items-center gap-2">
                         <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <span className="truncate">Seat No. <code> {tx.booking.seats?.seat_number ?? "Any Available Seat"} </code></span>
-                        <Badge variant="outline" className="whitespace-nowrap">{tx.booking.type}</Badge>
+                        <span className="truncate">Seat No. <Badge variant='secondary'>{tx.booking.seats?.seat_number ?? "Any Available Seat"}</Badge></span>
+                       
                       </div>
                     )}
                     {tx.booking?.slot && (
