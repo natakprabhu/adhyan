@@ -141,61 +141,60 @@ export default function Profile() {
     }
   };
 
-  const handleUpdateProfile = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsSaving(true);
+  
+const handleUpdateProfile = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  setIsSaving(true);
 
-    const formData = new FormData(e.currentTarget);
-    const updates = {
-      name: formData.get('name') as string,
-      phone: formData.get('phone') as string,
-      email: formData.get('email') as string,
-      telegram_id: formData.get('telegram_id') as string,
-      password: formData.get('password') as string,
-    };
+  const formData = new FormData(e.currentTarget);
+  const name = formData.get('name') as string;
+  const phone = formData.get('phone') as string;
+  const newPassword = formData.get('password') as string;
+  const confirmPassword = formData.get('confirmPassword') as string;
 
-    try {
-      // Update user profile fields in users table
-      const { error: profileError } = await supabase
-        .from('users')
-        .update({
-          name: updates.name,
-          phone: updates.phone,
-          telegram_id: updates.telegram_id
-        })
-        .eq('id', userProfile?.id);
+  if (newPassword && newPassword !== confirmPassword) {
+    toast({
+      title: 'Error',
+      description: 'Passwords do not match!',
+      variant: 'destructive',
+    });
+    setIsSaving(false);
+    return;
+  }
 
-      if (profileError) throw profileError;
+  try {
+    // Update name and phone in your users table
+    const { error: profileError } = await supabase
+      .from('users')
+      .update({ name, phone })
+      .eq('auth_user_id', userProfile?.auth_user_id);
 
+    if (profileError) throw profileError;
 
-      if (password !== confirmPassword) {
-        toast({
-          title: "Error",
-          description: "Passwords do not match!",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Update email if changed
-      if (updates.email && updates.email !== userProfile?.email) {
-        const { error: emailError } = await supabase.auth.updateUser({ email: updates.email });
-        if (emailError) throw emailError;
-      }
-
-
-
-      setUserProfile(prev => prev ? { ...prev, ...updates } : null);
-      setIsEditing(false);
-
-      toast({ title: 'Success', description: 'Profile updated successfully.' });
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      toast({ title: 'Error', description: 'Failed to update profile. Try again.', variant: 'destructive' });
-    } finally {
-      setIsSaving(false);
+    // Update password if provided
+    if (newPassword) {
+      const { error: pwError } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      if (pwError) throw pwError;
     }
-  };
+
+    // Update local state
+    setUserProfile(prev => prev ? { ...prev, name, phone } : null);
+    setIsEditing(false);
+
+    toast({ title: 'Success', description: 'Profile updated successfully.' });
+  } catch (error: any) {
+    console.error('Error updating profile:', error);
+    toast({
+      title: 'Error',
+      description: error.message || 'Failed to update profile',
+      variant: 'destructive'
+    });
+  } finally {
+    setIsSaving(false);
+  }
+};
 
   // const handleSignOut = async () => {
   //   await supabase.auth.signOut();
@@ -262,7 +261,7 @@ export default function Profile() {
       userName: userProfile.name,
       userEmail: userProfile.email,
       amount: transaction.amount,
-      seatNumber: bookingData.seats?.seat_number,
+      seatNumber: bookingData.seats?.seats?.seat_number ?? "Any Available Seat",
       bookingType: bookingData.type,
       slot: bookingData.slot || '',
       startDate: formatDateTime(bookingData.start_time),
@@ -323,70 +322,66 @@ export default function Profile() {
             </span>
             {!isEditing && (
               <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                <Edit className="h-4 w-4 mr-2" /> Edit
+                <Edit className="h-4 w-4 mr-2" /> Change Password
               </Button>
             )}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {isEditing ? (
-            <form onSubmit={handleUpdateProfile} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input id="name" name="name" defaultValue={userProfile?.name} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input id="phone" name="phone" defaultValue={userProfile?.phone} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <Input id="email" name="email" defaultValue={userProfile?.email} required />
-              </div>
-              {/* Password Section */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="password">New Password</Label>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter new password"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
-                  <Input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm password"
-                  />
-                </div>
-              </div>
+{/* Profile Edit Form */}
+{isEditing ? (
+  <form onSubmit={handleUpdateProfile} className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="name">Full Name</Label>
+      <Input id="name" name="name" defaultValue={userProfile?.name} required />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="phone">Phone Number</Label>
+      <Input id="phone" name="phone" defaultValue={userProfile?.phone} required />
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-2">
+        <Label htmlFor="password">New Password</Label>
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Enter new password"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="confirmPassword">Confirm Password</Label>
+        <Input
+          id="confirmPassword"
+          name="confirmPassword"
+          type="password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          placeholder="Confirm password"
+        />
+      </div>
+    </div>
+    <div className="flex gap-2">
+      <Button type="submit" disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Changes'}</Button>
+      <Button type="button" variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>Cancel</Button>
+    </div>
+  </form>
+) : (
+  <div className="space-y-4">
+    <div className="flex items-center gap-3">
+      <User className="h-4 w-4 text-muted-foreground" />
+      <p>{userProfile?.name}</p>
+    </div>
+    <div className="flex items-center gap-3">
+      <Phone className="h-4 w-4 text-muted-foreground" />
+      <p>{userProfile?.phone}</p>
+    </div>
+  </div>
+)}
 
 
-              <div className="space-y-2">
-                <Label htmlFor="telegram_id">Telegram ID</Label>
-                <Input id="telegram_id" name="telegram_id" defaultValue={userProfile?.telegram_id} placeholder="@your_telegram_id" />
-              </div>
-              <div className="flex gap-2">
-                <Button type="submit" disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Changes'}</Button>
-                <Button type="button" variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>Cancel</Button>
-              </div>
-            </form>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3"><User className="h-4 w-4 text-muted-foreground" /><p>{userProfile?.name}</p></div>
-              <div className="flex items-center gap-3"><Phone className="h-4 w-4 text-muted-foreground" /><p>{userProfile?.phone}</p></div>
-              <div className="flex items-center gap-3"><Mail className="h-4 w-4 text-muted-foreground" /><p>{userProfile?.email}</p></div>
-              {userProfile?.telegram_id && <div className="flex items-center gap-3"><MessageCircle className="h-4 w-4 text-muted-foreground" /><p>{userProfile.telegram_id}</p></div>}
-            </div>
-          )}
         </CardContent>
       </Card>
 
@@ -407,7 +402,7 @@ export default function Profile() {
                     {tx.booking && (
                       <div className="flex flex-wrap items-center gap-2">
                         <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <span className="truncate">Seat No.{tx.booking.seats?.seat_number}</span>
+                        <span className="truncate">Seat No. <code> {tx.booking.seats?.seat_number ?? "Any Available Seat"} </code></span>
                         <Badge variant="outline" className="whitespace-nowrap">{tx.booking.type}</Badge>
                       </div>
                     )}
