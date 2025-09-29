@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import NewMembershipBookingWizard from '@/components/NewMembershipBookingWizard';
+import { SeatLayout } from "@/pages/SeatLayout";
 
 import { 
   Users, 
@@ -228,28 +229,13 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Membership Plans */}
+
+      {/* Seat Layout */}
       <div className="space-y-6">
-        <h2 className="text-xl font-bold text-center">Our Membership Plans</h2>
-
-        <div className="grid md:grid-cols-2 gap-6">
-          <div>
-            <h3 className="text-lg font-semibold">Floating Seat – ₹2,200/month</h3>
-            <p className="text-sm text-gray-700">• 24×7 access anytime</p>
-            <p className="text-sm text-gray-700">• Use any available seat (1–50)</p>
-            <p className="text-sm text-gray-700">• First come, first served</p>
-            <p className="text-sm text-gray-700 line-through">Personal locker</p>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold">Fixed Seat – ₹3,300/month</h3>
-            <p className="text-sm text-gray-700">• 24×7 access anytime</p>
-            <p className="text-sm text-gray-700">• Dedicated seat (1–50)</p>
-            <p className="text-sm text-gray-700">• Your personal seat</p>
-            <p className="text-sm text-gray-700">• Personal locker included</p>
-          </div>
-        </div>
+        <h2 className="text-xl font-bold text-center">Seat Layout</h2>
+        <SeatLayout />
       </div>
+
       <div className="text-center space-y-3">
         <Button 
           size="lg" 

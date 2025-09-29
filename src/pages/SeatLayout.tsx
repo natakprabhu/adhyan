@@ -42,10 +42,17 @@ export const SeatLayout = () => {
         if (seatsError) throw seatsError;
         setSeats(seatsData || []);
 
+        const nowISO = new Date().toISOString();
+
         const { data: bookingsData, error: bookingsError } = await supabase
           .from("bookings")
           .select("*")
-          .eq("payment_status", "paid");
+          .eq("payment_status", "paid")
+          .eq("seat_category", "fixed")
+          .gte("membership_end_date", nowISO); // only bookings that haven't expired
+
+
+
         if (bookingsError) throw bookingsError;
         setBookings(bookingsData || []);
       } catch (err) {
@@ -96,16 +103,6 @@ export const SeatLayout = () => {
 
   return (
     <Card className="bg-white p-4 shadow-md">
-      
-            {/* Legend just below left section */}
-            <div className="flex gap-4 mt-2">
-              <div className="flex items-center gap-1">
-                <div className="w-4 h-4 bg-green-500 rounded"></div> Available
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-4 h-4 bg-red-500 rounded"></div> Fixed Booked
-              </div>
-            </div>
       <CardContent>
         <div className="flex w-full items-stretch gap-2 justify-center flex-wrap md:flex-nowrap">
           {/* Left Zone */}
@@ -116,6 +113,15 @@ export const SeatLayout = () => {
               </div>
             ))}
 
+            {/* Legend just below left section */}
+            <div className="flex gap-4 mt-2">
+              <div className="flex items-center gap-1">
+                <div className="w-4 h-4 bg-green-500 rounded"></div> Available
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-4 h-4 bg-red-500 rounded"></div> Fixed Booked
+              </div>
+            </div>
           </div>
 
           {/* Passage */}
