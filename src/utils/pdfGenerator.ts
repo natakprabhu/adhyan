@@ -81,9 +81,7 @@ const generateInvoicePDF = (
   pdf.setFontSize(12);
   pdf.setTextColor(...primaryColor);
   pdf.text(invoiceData.userName, 20, 105);
-  pdf.text(invoiceData.userEmail, 20, 111);
-
-  // Booking Details box
+   // Booking Details box
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(13);
   pdf.setTextColor(...accentColor);
