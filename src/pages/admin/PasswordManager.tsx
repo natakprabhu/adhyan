@@ -31,7 +31,7 @@ export const PasswordManager = () => {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('id, name, email, auth_user_id')
+        .select('id, name, phone, email, auth_user_id')
         .order('name');
 
       if (error) throw error;
