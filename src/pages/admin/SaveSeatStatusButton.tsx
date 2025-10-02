@@ -44,6 +44,9 @@ export const SaveSeatStatusButton = () => {
 
         if (bookingsError) throw bookingsError;
         setBookings(bookingsData || []);
+
+        console.log("Fetched seats:", seatsData);
+        console.log("Fetched bookings:", bookingsData);
       } catch (err) {
         console.error("Error fetching seats/bookings:", err);
       }
@@ -65,6 +68,13 @@ export const SaveSeatStatusButton = () => {
         const booked = bookings.find(
           (b) => b.seat_id === seat.id && b.seat_category === "fixed"
         );
+
+        if (booked) {
+          console.log(`🔴 Seat ${seat.seat_number} is being marked as BOOKED`);
+        } else {
+          console.log(`🟢 Seat ${seat.seat_number} is AVAILABLE`);
+        }
+
         return {
           seat_id: seat.id,
           seat_number: seat.seat_number,
@@ -82,9 +92,9 @@ export const SaveSeatStatusButton = () => {
         title: "Seat Status Saved",
         description: "Fixed seat status has been updated successfully.",
       });
-      console.log("Seat status saved:", data);
+      console.log("✅ Seat status saved:", data);
     } catch (err) {
-      console.error("Error saving seat status:", err);
+      console.error("❌ Error saving seat status:", err);
       toast({
         title: "Error",
         description: "Failed to save seat status.",

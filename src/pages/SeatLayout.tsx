@@ -65,21 +65,22 @@ export const SeatLayout = () => {
     return booked ? "booked" : "available";
   };
 
-const renderSeat = (seatNumber: number) => {
-  const seat = seats.find((s) => s.seat_number === seatNumber);
-  const status = seat?.status || "available";
-  const bgClass = status === "booked" ? "bg-red-500" : "bg-green-500";
+  const renderSeat = (seatNumber: number) => {
+    const seat = seats.find((s) => s.seat_number === seatNumber);
+    if (!seat) return null;
 
-  return (
-    <div
-      key={seatNumber}
-      className={`w-8 h-8 sm:w-10 sm:h-10 m-0.5 rounded flex items-center justify-center font-bold text-[10px] sm:text-xs text-white ${bgClass}`}
-    >
-      {seatNumber}
-    </div>
-  );
-};
+    const status = getSeatStatus(seat);
+    const bgClass = status === "booked" ? "bg-red-500" : "bg-green-500";
 
+    return (
+      <div
+        key={seatNumber}
+        className={`w-10 h-10 m-1 rounded flex items-center justify-center font-bold text-xs text-white ${bgClass}`}
+      >
+        {seatNumber}
+      </div>
+    );
+  };
 
   const EntryArrow = () => (
     <div className="flex flex-col items-center mt-1">
@@ -95,7 +96,7 @@ const renderSeat = (seatNumber: number) => {
 
   return (
     <Card className="bg-white p-4 shadow-md">
-          <CardContent className="realative">
+          <CardContent className="relative">
             {/* Legend */}
             <div className="absolute top-2 right-2 flex gap-4 bg-white/80 px-3 py-1 rounded shadow text-xs">
               <div className="flex items-center gap-1">
