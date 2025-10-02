@@ -126,32 +126,32 @@ export const ReleaseSeat = () => {
         <div>
           <Label>Select Seat to Release</Label>
          <select
-            value={selectedBooking?.id || ""}
-            onChange={(e) => {
-              const booking = availableSeats.find((b) => b.id === e.target.value) || null;
-              setSelectedBooking(booking);
-              setEndDate(
-                booking?.membership_end_date
-                  ? booking.membership_end_date.slice(0, 10)
-                  : ""
-              ); 
-            }}
-            className="w-full p-2 border rounded"
-          >
-            <option value="">Select a seat</option>
-            {availableSeats
-              .slice() // create a copy so original array isn't mutated
-              .sort((a, b) => {
-                const seatA = a.seats?.seat_number || 0;
-                const seatB = b.seats?.seat_number || 0;
-                return seatA - seatB;
-              })
-              .map((b) => (
-                <option key={b.id} value={b.id}>
-                  Seat {b.seats?.seat_number} (Booked by {b.users?.name})
-                </option>
-              ))}
-          </select>
+  value={selectedBooking?.id || ""}
+  onChange={(e) => {
+    const booking = availableSeats.find((b) => b.id === e.target.value) || null;
+    setSelectedBooking(booking);
+    setEndDate(
+      booking?.membership_end_date
+        ? booking.membership_end_date.slice(0, 10)
+        : ""
+    ); 
+  }}
+  className="w-full p-2 border rounded"
+>
+  <option value="">Select a seat</option>
+  {availableSeats
+    .slice() // create a copy so original array isn't mutated
+    .sort((a, b) => {
+      const seatA = a.seats?.seat_number || 0;
+      const seatB = b.seats?.seat_number || 0;
+      return seatA - seatB;
+    })
+    .map((b) => (
+      <option key={b.id} value={b.id}>
+        Seat {b.seats?.seat_number} (Booked by {b.users?.name})
+      </option>
+    ))}
+</select>
 
         </div>
       )}

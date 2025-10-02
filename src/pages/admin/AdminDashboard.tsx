@@ -14,6 +14,8 @@ import { WalletManagement } from "./WalletManagement";
 import { SeatLayout } from "./SeatLayout";
 import { PasswordManager } from "./PasswordManager";
 import { ReleaseSeat } from "./ReleaseSeat";
+import { SaveSeatStatusButton } from "./SaveSeatStatusButton";
+
 
 export const AdminDashboard = () => {
   const { user, role, loading } = useAuth();
@@ -148,30 +150,38 @@ export const AdminDashboard = () => {
 
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto p-6">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          <div className="p-6 bg-primary text-white shadow-lg rounded-xl flex flex-col justify-between hover:shadow-2xl transition">
-            <h3 className="text-sm opacity-80">Total Users</h3>
-            <p className="text-3xl font-bold mt-2">{statsLoading ? "—" : stats.users}</p>
-          </div>
+{/* Main Content */}
+<main className="flex-1 overflow-auto p-6">
+  {/* Stats Cards */}
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+    <div className="p-6 bg-primary text-white shadow-lg rounded-xl flex flex-col justify-between hover:shadow-2xl transition">
+      <h3 className="text-sm opacity-80">Total Users</h3>
+      <p className="text-3xl font-bold mt-2">{statsLoading ? "—" : stats.users}</p>
+    </div>
 
-          <div className="p-6 bg-white shadow-lg rounded-xl flex flex-col justify-between hover:shadow-2xl transition">
-            <h3 className="text-sm text-gray-500">Total Booked Seats</h3>
-            <p className="text-3xl font-bold mt-2">{statsLoading ? "—" : stats.bookedSeats}</p>
-          </div>
+    <div className="p-6 bg-white shadow-lg rounded-xl flex flex-col justify-between hover:shadow-2xl transition">
+      <h3 className="text-sm text-gray-500">Total Booked Seats</h3>
+      <p className="text-3xl font-bold mt-2">{statsLoading ? "—" : stats.bookedSeats}</p>
+    </div>
 
-          <div className="p-6 bg-white shadow-lg rounded-xl flex flex-col justify-between hover:shadow-2xl transition">
-            <h3 className="text-sm text-gray-500">Fixed Seats</h3>
-            <p className="text-3xl font-bold mt-2">{statsLoading ? "—" : stats.fixedSeats}</p>
-          </div>
+    <div className="p-6 bg-white shadow-lg rounded-xl flex flex-col justify-between hover:shadow-2xl transition">
+      <h3 className="text-sm text-gray-500">Fixed Seats</h3>
+      <p className="text-3xl font-bold mt-2">{statsLoading ? "—" : stats.fixedSeats}</p>
+    </div>
 
-          <div className="p-6 bg-white shadow-lg rounded-xl flex flex-col justify-between hover:shadow-2xl transition">
-            <h3 className="text-sm text-gray-500">Floating Seats</h3>
-            <p className="text-3xl font-bold mt-2">{statsLoading ? "—" : stats.floatingSeats}</p>
-          </div>
-        </div>
+    <div className="p-6 bg-white shadow-lg rounded-xl flex flex-col justify-between hover:shadow-2xl transition">
+      <h3 className="text-sm text-gray-500">Floating Seats</h3>
+      <p className="text-3xl font-bold mt-2">{statsLoading ? "—" : stats.floatingSeats}</p>
+    </div>
+  </div>
+
+  {/* Admin Header and Button */}
+  <div className="mb-6">
+    <h1 className="text-2xl font-bold mb-4">Admin Dashboard</h1>
+    <SaveSeatStatusButton />
+  </div>
+
+
 
         <Tabs defaultValue="bookings" className="w-full">
   <TabsList className="flex flex-wrap w-full gap-1 mb-4 border-b border-gray-200">
