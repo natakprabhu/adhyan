@@ -114,8 +114,8 @@ export default function SeatStatusPage() {
           <p className="text-center mt-4">Loading seat layout...</p>
         ) : (
           <div className="overflow-x-auto relative">
-            {/* Scroll Hint */}
-            <div className="absolute top-0 right-0 mr-2 mt-1 text-xs text-gray-500 flex items-center space-x-1 animate-bounce">
+            {/* Scroll Hint for Mobile */}
+            <div className="absolute top-0 right-0 mr-2 mt-1 text-xs text-gray-500 flex items-center space-x-1 sm:hidden animate-bounce">
               <span>Swipe</span>
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14m0 0l-4-4m4 4l-4 4" />
@@ -145,6 +145,17 @@ export default function SeatStatusPage() {
                       </div>
                     ))}
                   </div>
+
+
+			          {/* Passage */}
+			          <div className="relative w-10 flex flex-col justify-start items-center self-stretch">
+			            <div className="absolute top-0 bottom-0 left-1 w-px border-l-2 border-dotted border-gray-400"></div>
+			            <div className="absolute top-0 bottom-0 right-1 w-px border-l-2 border-dotted border-gray-400"></div>
+			            <div className="rotate-90 text-xs md:text-sm text-gray-500 absolute top-1/3">
+			              Passage
+			            </div>
+			            <EntryArrow />
+			          </div>
 
                   {/* Right Zone */}
                   <div className="flex flex-col items-end">
