@@ -138,6 +138,11 @@ export const AdminDashboard = () => {
         </div>
 
         {/* Logout Button */}
+          {/* Admin Header and Button */}
+  <div className="mb-6">
+ 
+    <SaveSeatStatusButton />
+  </div>
         <button
           onClick={handleLogout}
           className="flex items-center space-x-2 px-3 py-1 bg-red-500 text-white rounded-full text-sm font-medium hover:bg-red-600 transition"
@@ -174,14 +179,6 @@ export const AdminDashboard = () => {
       <p className="text-3xl font-bold mt-2">{statsLoading ? "—" : stats.floatingSeats}</p>
     </div>
   </div>
-
-  {/* Admin Header and Button */}
-  <div className="mb-6">
- 
-    <SaveSeatStatusButton />
-  </div>
-
-
 
         <Tabs defaultValue="bookings" className="w-full">
   <TabsList className="flex flex-wrap w-full gap-1 mb-4 border-b border-gray-200">
