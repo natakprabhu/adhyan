@@ -1,17 +1,23 @@
-// /pages/status.tsx
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 
-interface FixedSeat {
+interface Seat {
   id: string;
-  seat_id: string | null;
   seat_number: number;
-  status: string; // "booked" or "available"
 }
 
-export default function SeatLayout() {
-  const [seats, setSeats] = useState<FixedSeat[]>([]);
+interface Booking {
+  id: string;
+  seat_id: string | null;
+  seat_category: string;
+  status: string;
+  payment_status: string;
+}
+
+export const SeatLayout = () => {
+  const [seats, setSeats] = useState<Seat[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
 
   const leftRows = [
@@ -26,34 +32,50 @@ export default function SeatLayout() {
   ];
 
   useEffect(() => {
-    const fetchSeats = async () => {
+    const fetchData = async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase
-          .from("fixed_seats")
+        const { data: seatsData, error: seatsError } = await supabase
+          .from("seats")
           .select("*")
           .order("seat_number", { ascending: true });
-        if (error) throw error;
-        setSeats(data || []);
+        if (seatsError) throw seatsError;
+        setSeats(seatsData || []);
+
+        const { data: bookingsData, error: bookingsError } = await supabase
+          .from("bookings")
+          .select("*")
+          .eq("payment_status", "paid");
+        if (bookingsError) throw bookingsError;
+        setBookings(bookingsData || []);
       } catch (err) {
-        console.error("Error fetching fixed seats:", err);
+        console.error("Error fetching seats/bookings:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchSeats();
+    fetchData();
   }, []);
+
+  const getSeatStatus = (seat: Seat) => {
+    const booked = bookings.find(
+      (b) => b.seat_id === seat.id && b.seat_category === "fixed"
+    );
+    return booked ? "booked" : "available";
+  };
 
   const renderSeat = (seatNumber: number) => {
     const seat = seats.find((s) => s.seat_number === seatNumber);
-    const status = seat?.status || "available";
+    if (!seat) return null;
+
+    const status = getSeatStatus(seat);
     const bgClass = status === "booked" ? "bg-red-500" : "bg-green-500";
 
     return (
       <div
         key={seatNumber}
-        className={`w-5 h-5 sm:w-6 sm:h-6 m-0.5 rounded flex items-center justify-center font-bold text-[8px] sm:text-[10px] text-white ${bgClass}`}
+        className={`w-10 h-10 m-1 rounded flex items-center justify-center font-bold text-xs text-white ${bgClass}`}
       >
         {seatNumber}
       </div>
@@ -62,23 +84,20 @@ export default function SeatLayout() {
 
   const EntryArrow = () => (
     <div className="flex flex-col items-center mt-1">
-      <span className="text-[9px] mb-1 text-gray-700">Entry</span>
-      <svg width="10" height="20" viewBox="0 0 12 24">
-        <path d="M6 0 V18" stroke="currentColor" strokeWidth="1.2" />
+      <span className="text-[10px] mb-1 text-gray-700">Entry</span>
+      <svg width="12" height="24" viewBox="0 0 12 24">
+        <path d="M6 0 V18" stroke="currentColor" strokeWidth="1.5" />
         <path d="M1 18 L6 24 L11 18 Z" fill="currentColor" />
       </svg>
     </div>
   );
 
-  if (loading) return <p className="text-center mt-4">Loading seat layout...</p>;
+  if (loading) return <p>Loading seat layout...</p>;
 
   return (
-    <div>
 
 
-      {/* Main Content */}
-     
-        <Card className="bg-white p-3 shadow-md min-w-[280px]">
+         <Card className="bg-white p-4 shadow-md">
           <CardContent className="relative">
             <div className="flex w-max items-stretch gap-2 justify-center">
               {/* Left Zone */}
@@ -89,8 +108,6 @@ export default function SeatLayout() {
                   </div>
                 ))}
               </div>
-
-
               {/* Passage */}
               <div className="relative w-6 flex flex-col justify-start items-center self-stretch">
                 <div className="absolute top-0 bottom-0 left-0.5 w-px border-l border-dotted border-gray-400"></div>
@@ -126,6 +143,5 @@ export default function SeatLayout() {
           </CardContent>
         </Card>
 
-    </div>
   );
-}
+};
