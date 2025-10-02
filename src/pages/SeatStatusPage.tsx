@@ -113,46 +113,56 @@ export default function SeatStatusPage() {
         {loading ? (
           <p className="text-center mt-4">Loading seat layout...</p>
         ) : (
-          <Card className="bg-white p-4 shadow-md">
-            <CardContent className="relative">
-              {/* Legend */}
-              <div className="absolute top-2 right-2 flex gap-4 bg-white/80 px-3 py-1 rounded shadow text-xs">
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 bg-green-500 rounded"></div>
-                  Available
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 bg-red-500 rounded"></div>
-                  Fixed Booked
-                </div>
-              </div>
+          <div className="overflow-x-auto relative">
+            {/* Scroll Hint */}
+            <div className="absolute top-0 right-0 mr-2 mt-1 text-xs text-gray-500 flex items-center space-x-1 animate-bounce">
+              <span>Swipe</span>
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14m0 0l-4-4m4 4l-4 4" />
+              </svg>
+            </div>
 
-              <div className="flex w-full items-stretch gap-2 justify-center flex-wrap md:flex-nowrap">
-                {/* Left Zone */}
-                <div className="flex flex-col">
-                  {leftRows.map((row, i) => (
-                    <div key={i} className="flex justify-start">
-                      {row.map((label) => renderSeat(label))}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Right Zone */}
-                <div className="flex flex-col items-end">
-                  {rightRows.map((row, i) => (
-                    <div key={i} className="flex justify-end">
-                      {row.map((label) => renderSeat(label))}
-                    </div>
-                  ))}
-
-                  {/* Pantry */}
-                  <div className="mt-4 w-full h-16 bg-gray-100 flex items-center justify-center border border-gray-300 rounded-md">
-                    <span className="text-gray-700 text-sm font-medium">Pantry</span>
+            <Card className="bg-white p-4 shadow-md min-w-[320px]">
+              <CardContent className="relative">
+                {/* Legend */}
+                <div className="absolute top-2 right-2 flex gap-4 bg-white/80 px-3 py-1 rounded shadow text-xs">
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 bg-green-500 rounded"></div>
+                    Available
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 bg-red-500 rounded"></div>
+                    Fixed Booked
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+
+                <div className="flex w-max items-stretch gap-2 justify-center flex-wrap md:flex-nowrap">
+                  {/* Left Zone */}
+                  <div className="flex flex-col">
+                    {leftRows.map((row, i) => (
+                      <div key={i} className="flex justify-start">
+                        {row.map((label) => renderSeat(label))}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Right Zone */}
+                  <div className="flex flex-col items-end">
+                    {rightRows.map((row, i) => (
+                      <div key={i} className="flex justify-end">
+                        {row.map((label) => renderSeat(label))}
+                      </div>
+                    ))}
+
+                    {/* Pantry */}
+                    <div className="mt-4 w-full h-16 bg-gray-100 flex items-center justify-center border border-gray-300 rounded-md">
+                      <span className="text-gray-700 text-sm font-medium">Pantry</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         )}
       </main>
 
