@@ -20,7 +20,6 @@ export const ReleaseSeat = () => {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch active bookings when component mounts
   useEffect(() => {
     fetchAvailableSeats();
   }, []);
@@ -55,26 +54,23 @@ export const ReleaseSeat = () => {
     try {
       setIsLoading(true);
 
-      const yesterdayISO = new Date(new Date().setDate(new Date().getDate() - 1)).toISOString();
+      // 1️⃣ Delete all transactions related to this booking
+      const { error: transactionsError } = await supabase
+        .from("transactions")
+        .delete()
+        .eq("booking_id", selectedBooking.id);
 
-      // 1️⃣ Truncate booking end_time
-      const { error: updateError } = await supabase
+      if (transactionsError) throw transactionsError;
+
+      // 2️⃣ Delete the booking itself
+      const { error: bookingError } = await supabase
         .from("bookings")
-        .update({ membership_end_date: yesterdayISO })
+        .delete()
         .eq("id", selectedBooking.id);
 
-      if (updateError) throw updateError;
+      if (bookingError) throw bookingError;
 
-      // 2️⃣ Create zero-amount transaction for audit
-      await supabase.from("transactions").insert({
-        booking_id: selectedBooking.id,
-        user_id: selectedBooking.user_id,
-        amount: 0,
-        status: "completed",
-        admin_notes: `Seat released. Booking end truncated to ${yesterdayISO.slice(0, 10)}`,
-      });
-
-      toast({ title: "Success", description: `Seat ${selectedBooking.seats?.seat_number} released.` });
+      toast({ title: "Success", description: `Seat ${selectedBooking.seats?.seat_number} and all related data deleted.` });
       setSelectedBooking(null);
       fetchAvailableSeats();
     } catch (err) {
@@ -122,7 +118,7 @@ export const ReleaseSeat = () => {
           <p>
             <strong>Validity:</strong> {selectedBooking.membership_start_date?.slice(0,10)} to {selectedBooking.membership_end_date?.slice(0,10)}
           </p>
-          <p className="text-sm text-gray-500 mt-2">Confirm before releasing this seat.</p>
+          <p className="text-sm text-gray-500 mt-2">Confirm before deleting this seat and all related data.</p>
 
           <div className="flex justify-end gap-2 mt-2">
             <Button variant="outline" onClick={handleBack}>Back</Button>
@@ -131,7 +127,7 @@ export const ReleaseSeat = () => {
               onClick={releaseSeat}
               disabled={isLoading}
             >
-              {isLoading ? "Releasing..." : "Release Seat"}
+              {isLoading ? "Deleting..." : "Delete Seat"}
             </Button>
           </div>
         </div>
