@@ -17,7 +17,7 @@ interface Booking {
 }
 
 export default function SeatStatusPage() {
-  const router = useRouter();
+  
   const [seats, setSeats] = useState<Seat[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -180,7 +180,7 @@ export default function SeatStatusPage() {
 
       <footer className="bg-white shadow-inner p-4 flex justify-center">
 			  <a
-			    href="/login"
+			    href="/auth"
 			    className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
 			  >
 			    Back to Login
