@@ -28,7 +28,7 @@ export const SeatLayout = () => {
   const rightRows = [
     [2, 1], [6, 5], [12, 11, 10], [19, 18, 17],
     [26, 25, 24], [33, 32, 31], [40, 39, 38],
-    [47, 46, 45], [48, 49, 50]
+    [47, 46, 45], [50, 49, 48]
   ];
 
   useEffect(() => {
@@ -81,7 +81,7 @@ export const SeatLayout = () => {
       </div>
     );
   };
-
+rttyu
   const EntryArrow = () => (
     <div className="flex flex-col items-center mt-1">
       <span className="text-[10px] mb-1 text-gray-700">Entry</span>
