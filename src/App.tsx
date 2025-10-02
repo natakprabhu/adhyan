@@ -11,6 +11,7 @@ import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
 
 import Index from "./pages/Index";
 import Home from "./pages/Home";
+import SeatStatusPage from "./pages/SeatStatusPage";
 import Auth from "./pages/Auth";
 import SeatPlan from "./pages/SeatPlan";
 import MySeat from "./pages/MySeat";
@@ -39,6 +40,7 @@ const App = () => (
               {/* Public Routes */}
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/available" element={<SeatStatusPage />} />
               <Route path="/phone/:phoneNumber" element={<IDCard />} />
               <Route path="/verify/:phone" element={<VerifyBooking />} />
 
