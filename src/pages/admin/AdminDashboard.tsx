@@ -50,20 +50,29 @@ export const AdminDashboard = () => {
 
       const revenue = (txnData ?? []).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
 
+
+      // Booked seats (active & paid)
       const { count: bookedCount } = await supabase.from("bookings")
         .select("id", { count: "exact" })
         .eq("status", "confirmed")
-        .eq("payment_status", "paid");
+        .eq("payment_status", "paid")
+        .gte("membership_end_date", nowISO);
 
+      // Fixed seats (active & paid)
       const { count: fixedCount } = await supabase.from("bookings")
         .select("id", { count: "exact" })
         .eq("seat_category", "fixed")
-        .eq("payment_status", "paid");
+        .eq("payment_status", "paid")
+        .gte("membership_end_date", nowISO)
+        .eq("status", "confirmed");
 
+      // Floating seats (active & paid)
       const { count: floatCount } = await supabase.from("bookings")
         .select("id", { count: "exact" })
         .eq("seat_category", "floating")
-        .eq("payment_status", "paid");
+        .eq("payment_status", "paid")
+        .gte("membership_end_date", nowISO)
+        .eq("status", "confirmed");
 
       const usersRes = await supabase.from("users")
         .select("*", { count: "exact", head: true });
