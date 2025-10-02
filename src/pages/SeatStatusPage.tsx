@@ -178,14 +178,16 @@ export default function SeatStatusPage() {
       </main>
 
       {/* Footer */}
+
       <footer className="bg-white shadow-inner p-4 flex justify-center">
-        <button
-          onClick={handleBackToLogin}
-          className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
-        >
-          Back to Login
-        </button>
-      </footer>
+			  <a
+			    href="/login"
+			    className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
+			  >
+			    Back to Login
+			  </a>
+			</footer>
+
     </div>
   );
 }
