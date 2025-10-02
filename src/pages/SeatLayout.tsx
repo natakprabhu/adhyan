@@ -1,23 +1,17 @@
+// /pages/status.tsx
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 
-interface Seat {
-  id: string;
-  seat_number: number;
-}
-
-interface Booking {
+interface FixedSeat {
   id: string;
   seat_id: string | null;
-  seat_category: string;
-  status: string;
-  payment_status: string;
+  seat_number: number;
+  status: string; // "booked" or "available"
 }
 
-export const SeatLayout = () => {
-  const [seats, setSeats] = useState<Seat[]>([]);
-  const [bookings, setBookings] = useState<Booking[]>([]);
+export default function SeatLayout() {
+  const [seats, setSeats] = useState<FixedSeat[]>([]);
   const [loading, setLoading] = useState(true);
 
   const leftRows = [
@@ -32,50 +26,34 @@ export const SeatLayout = () => {
   ];
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchSeats = async () => {
       setLoading(true);
       try {
-        const { data: seatsData, error: seatsError } = await supabase
-          .from("seats")
+        const { data, error } = await supabase
+          .from("fixed_seats")
           .select("*")
           .order("seat_number", { ascending: true });
-        if (seatsError) throw seatsError;
-        setSeats(seatsData || []);
-
-        const { data: bookingsData, error: bookingsError } = await supabase
-          .from("bookings")
-          .select("*")
-          .eq("payment_status", "paid");
-        if (bookingsError) throw bookingsError;
-        setBookings(bookingsData || []);
+        if (error) throw error;
+        setSeats(data || []);
       } catch (err) {
-        console.error("Error fetching seats/bookings:", err);
+        console.error("Error fetching fixed seats:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
+    fetchSeats();
   }, []);
-
-  const getSeatStatus = (seat: Seat) => {
-    const booked = bookings.find(
-      (b) => b.seat_id === seat.id && b.seat_category === "fixed"
-    );
-    return booked ? "booked" : "available";
-  };
 
   const renderSeat = (seatNumber: number) => {
     const seat = seats.find((s) => s.seat_number === seatNumber);
-    if (!seat) return null;
-
-    const status = getSeatStatus(seat);
+    const status = seat?.status || "available";
     const bgClass = status === "booked" ? "bg-red-500" : "bg-green-500";
 
     return (
       <div
         key={seatNumber}
-        className={`w-10 h-10 m-1 rounded flex items-center justify-center font-bold text-xs text-white ${bgClass}`}
+        className={`w-5 h-5 sm:w-6 sm:h-6 m-0.5 rounded flex items-center justify-center font-bold text-[8px] sm:text-[10px] text-white ${bgClass}`}
       >
         {seatNumber}
       </div>
@@ -84,30 +62,25 @@ export const SeatLayout = () => {
 
   const EntryArrow = () => (
     <div className="flex flex-col items-center mt-1">
-      <span className="text-[10px] mb-1 text-gray-700">Entry</span>
-      <svg width="12" height="24" viewBox="0 0 12 24">
-        <path d="M6 0 V18" stroke="currentColor" strokeWidth="1.5" />
+      <span className="text-[9px] mb-1 text-gray-700">Entry</span>
+      <svg width="10" height="20" viewBox="0 0 12 24">
+        <path d="M6 0 V18" stroke="currentColor" strokeWidth="1.2" />
         <path d="M1 18 L6 24 L11 18 Z" fill="currentColor" />
       </svg>
     </div>
   );
 
-  if (loading) return <p>Loading seat layout...</p>;
+  if (loading) return <p className="text-center mt-4">Loading seat layout...</p>;
 
   return (
+    <div>
 
-        <Card className="bg-white p-4 shadow-md min-w-[320px]">
-                      {/* Legend just below left section */}
-            <div className="flex gap-4 mt-2">
-              <div className="flex items-center gap-1">
-                <div className="w-4 h-4 bg-green-500 rounded"></div> Available
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-4 h-4 bg-red-500 rounded"></div> Fixed Booked
-              </div>
-            </div>
+
+      {/* Main Content */}
+     
+        <Card className="bg-white p-3 shadow-md min-w-[280px] max-w-[380px]">
           <CardContent className="relative">
-            <div className="flex w-max items-stretch gap-2 justify-center flex-wrap md:flex-nowrap">
+            <div className="flex w-max items-stretch gap-2 justify-center">
               {/* Left Zone */}
               <div className="flex flex-col">
                 {leftRows.map((row, i) => (
@@ -117,11 +90,12 @@ export const SeatLayout = () => {
                 ))}
               </div>
 
+
               {/* Passage */}
-              <div className="relative w-8 flex flex-col justify-start items-center self-stretch">
-                <div className="absolute top-0 bottom-0 left-1 w-px border-l-2 border-dotted border-gray-400"></div>
-                <div className="absolute top-0 bottom-0 right-1 w-px border-l-2 border-dotted border-gray-400"></div>
-                <div className="rotate-90 text-xs md:text-sm text-gray-500 absolute top-1/3">
+              <div className="relative w-6 flex flex-col justify-start items-center self-stretch">
+                <div className="absolute top-0 bottom-0 left-0.5 w-px border-l border-dotted border-gray-400"></div>
+                <div className="absolute top-0 bottom-0 right-0.5 w-px border-l border-dotted border-gray-400"></div>
+                <div className="rotate-90 text-[9px] text-gray-500 absolute top-1/3 whitespace-nowrap">
                   Passage
                 </div>
                 <EntryArrow />
@@ -136,13 +110,23 @@ export const SeatLayout = () => {
                 ))}
 
                 {/* Pantry */}
-                <div className="mt-4 w-full h-16 bg-gray-100 flex items-center justify-center border border-gray-300 rounded-md">
-                  <span className="text-gray-700 text-sm font-medium">Pantry</span>
+                <div className="mt-2 w-full h-12 bg-gray-100 flex items-center justify-center border border-gray-300 rounded-md">
+                  <span className="text-gray-700 text-xs font-medium">Pantry</span>
                 </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 bg-green-500 rounded"></div>
+                      Available
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 bg-red-500 rounded"></div>
+                      Fixed Booked
+                    </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
+
+    </div>
   );
-};
+}
