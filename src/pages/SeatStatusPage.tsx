@@ -67,6 +67,17 @@ export default function SeatStatusPage() {
     return booked ? "booked" : "available";
   };
 
+    const EntryArrow = () => (
+    <div className="flex flex-col items-center mt-1">
+      <span className="text-[10px] mb-1 text-gray-700">Entry</span>
+      <svg width="12" height="24" viewBox="0 0 12 24">
+        <path d="M6 0 V18" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M1 18 L6 24 L11 18 Z" fill="currentColor" />
+      </svg>
+    </div>
+  );
+
+
   const renderSeat = (seatNumber: number) => {
     const seat = seats.find((s) => s.seat_number === seatNumber);
     if (!seat) return null;
