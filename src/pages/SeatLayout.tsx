@@ -95,42 +95,54 @@ export const SeatLayout = () => {
   if (loading) return <p>Loading seat layout...</p>;
 
   return (
-    <Card className="bg-white p-4 shadow-md">
+
+        <Card className="bg-white p-4 shadow-md min-w-[320px]">
+                      {/* Legend just below left section */}
+            <div className="flex gap-4 mt-2">
+              <div className="flex items-center gap-1">
+                <div className="w-4 h-4 bg-green-500 rounded"></div> Available
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-4 h-4 bg-red-500 rounded"></div> Fixed Booked
+              </div>
+            </div>
           <CardContent className="relative">
-            {/* Legend */}
-            <div className="absolute top-2 right-2 flex gap-4 bg-white/80 px-3 py-1 rounded shadow text-xs">
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 bg-green-500 rounded"></div>
-                Available
+            <div className="flex w-max items-stretch gap-2 justify-center flex-wrap md:flex-nowrap">
+              {/* Left Zone */}
+              <div className="flex flex-col">
+                {leftRows.map((row, i) => (
+                  <div key={i} className="flex justify-start">
+                    {row.map((label) => renderSeat(label))}
+                  </div>
+                ))}
               </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 bg-red-500 rounded"></div>
-                Fixed Booked
+
+              {/* Passage */}
+              <div className="relative w-8 flex flex-col justify-start items-center self-stretch">
+                <div className="absolute top-0 bottom-0 left-1 w-px border-l-2 border-dotted border-gray-400"></div>
+                <div className="absolute top-0 bottom-0 right-1 w-px border-l-2 border-dotted border-gray-400"></div>
+                <div className="rotate-90 text-xs md:text-sm text-gray-500 absolute top-1/3">
+                  Passage
+                </div>
+                <EntryArrow />
+              </div>
+
+              {/* Right Zone */}
+              <div className="flex flex-col items-end">
+                {rightRows.map((row, i) => (
+                  <div key={i} className="flex justify-end">
+                    {row.map((label) => renderSeat(label))}
+                  </div>
+                ))}
+
+                {/* Pantry */}
+                <div className="mt-4 w-full h-16 bg-gray-100 flex items-center justify-center border border-gray-300 rounded-md">
+                  <span className="text-gray-700 text-sm font-medium">Pantry</span>
+                </div>
               </div>
             </div>
-        <div className="flex w-full items-stretch gap-2 justify-center flex-wrap md:flex-nowrap">
-          {/* Left Zone */}
-          <div className="flex flex-col">
-            {leftRows.map((row, i) => (
-              <div key={i} className="flex justify-start">
-                {row.map((label) => renderSeat(label))}
-              </div>
-            ))}
-          </div>
-          {/* Right Zone */}
-          <div className="flex flex-col items-end">
-            {rightRows.map((row, i) => (
-              <div key={i} className="flex justify-end">
-                {row.map((label) => renderSeat(label))}
-              </div>
-            ))}
-            {/* Pantry */}
-            <div className="mt-4 w-full h-16 bg-gray-100 flex items-center justify-center border border-gray-300 rounded-md">
-              <span className="text-gray-700 text-sm font-medium">Pantry</span>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+          </CardContent>
+        </Card>
+
   );
 };
