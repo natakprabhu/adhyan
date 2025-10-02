@@ -61,8 +61,7 @@ export const AdminDashboard = () => {
       .eq("payment_status", "paid")
       .gte("membership_end_date", nowISO);
 
-    // Fixed seats (active & paid)
-    // Fixed seats (active & paid)
+  // Fixed seats (active & paid)
     const { data: fixedBookings, error: fixedError } = await supabase
       .from("bookings")
       .select("id")  // fetch the id column
@@ -79,6 +78,9 @@ export const AdminDashboard = () => {
 
     // Count if needed
     const fixedCount = fixedBookings?.length ?? 0;
+
+    const freeFixedSeats = 50 - fixedCount;
+
 
     // Floating seats (active & paid)
     const { count: floatCount } = await supabase.from("bookings")
@@ -97,6 +99,7 @@ export const AdminDashboard = () => {
         fixedSeats: fixedCount ?? 0,
         floatingSeats: floatCount ?? 0,
         users: usersRes.count ?? 0,
+        free: freeFixedSeats ?? 0,
       });
     } catch (err) {
       console.error("❌ fetchStats error:", err);
@@ -172,13 +175,13 @@ export const AdminDashboard = () => {
   {/* Stats Cards */}
   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
     <div className="p-6 bg-primary text-white shadow-lg rounded-xl flex flex-col justify-between hover:shadow-2xl transition">
-      <h3 className="text-sm opacity-80">Total Users</h3>
-      <p className="text-3xl font-bold mt-2">{statsLoading ? "—" : stats.users}</p>
+      <h3 className="text-sm opacity-80">Total Booked Seats</h3>
+      <p className="text-3xl font-bold mt-2">{statsLoading ? "—" : stats.bookedSeats}</p>
     </div>
 
     <div className="p-6 bg-white shadow-lg rounded-xl flex flex-col justify-between hover:shadow-2xl transition">
-      <h3 className="text-sm text-gray-500">Total Booked Seats</h3>
-      <p className="text-3xl font-bold mt-2">{statsLoading ? "—" : stats.bookedSeats}</p>
+      <h3 className="text-sm text-gray-500">Free Seats</h3>
+      <p className="text-3xl font-bold mt-2">{statsLoading ? "—" : stats.free}</p>
     </div>
 
     <div className="p-6 bg-white shadow-lg rounded-xl flex flex-col justify-between hover:shadow-2xl transition">
