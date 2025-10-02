@@ -138,23 +138,18 @@ export const AdminDashboard = () => {
         </div>
 
 {/* Admin Header and Buttons */}
-<div className="flex items-center gap-4 mb-6">
+<div className="flex items-center justify-between mb-6 gap-4">
   {/* Save Seat Status Button */}
-  <button
-    onClick={saveSeatStatus} // or keep your SaveSeatStatusButton component
-    className="flex-1 flex items-center justify-center px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition"
-  >
-    Save Seat Status
-  </button>
+  <SaveSeatStatusButton />
 
   {/* Logout Button */}
   <button
     onClick={handleLogout}
-    className="flex-1 flex items-center justify-center px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition"
+    className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition"
   >
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      className="h-4 w-4 mr-2"
+      className="h-4 w-4"
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
@@ -166,10 +161,9 @@ export const AdminDashboard = () => {
         d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1m0-10V5"
       />
     </svg>
-    Logout
+    <span>Logout</span>
   </button>
 </div>
-
 
       </header>
 
