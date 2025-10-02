@@ -78,7 +78,7 @@ export default function SeatLayout() {
 
       {/* Main Content */}
      
-        <Card className="bg-white p-3 shadow-md min-w-[280px] max-w-[380px]">
+        <Card className="bg-white p-3 shadow-md min-w-[280px]">
           <CardContent className="relative">
             <div className="flex w-max items-stretch gap-2 justify-center">
               {/* Left Zone */}
@@ -125,7 +125,6 @@ export default function SeatLayout() {
             </div>
           </CardContent>
         </Card>
-
 
     </div>
   );
