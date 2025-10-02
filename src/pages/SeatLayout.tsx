@@ -75,7 +75,7 @@ export const SeatLayout = () => {
     return (
       <div
         key={seatNumber}
-        className={`w-10 h-10 m-1 rounded flex items-center justify-center font-bold text-xs text-white ${bgClass}`}
+         className={`w-6 h-6 sm:w-8 sm:h-8 m-0.5 rounded flex items-center justify-center font-bold text-[10px] sm:text-xs text-white ${bgClass}`}
       >
         {seatNumber}
       </div>
