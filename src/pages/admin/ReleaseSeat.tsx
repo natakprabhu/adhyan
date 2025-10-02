@@ -19,6 +19,7 @@ export const ReleaseSeat = () => {
   const [availableSeats, setAvailableSeats] = useState<Booking[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [endDate, setEndDate] = useState<string>(""); // For custom membership end date
 
   // Fetch active bookings when component mounts
   useEffect(() => {
@@ -31,7 +32,9 @@ export const ReleaseSeat = () => {
       const nowISO = new Date().toISOString();
       const { data, error } = await supabase
         .from("bookings")
-        .select("id, seats(seat_number),membership_start_date, membership_end_date, users(id, name, email)")
+        .select(
+          "id, seats(seat_number), membership_start_date, membership_end_date, users(id, name, email)"
+        )
         .eq("seat_category", "fixed")
         .gte("membership_end_date", nowISO)
         .order("membership_start_date", { ascending: true });
@@ -40,7 +43,11 @@ export const ReleaseSeat = () => {
       setAvailableSeats(data || []);
     } catch (err) {
       console.error("❌ fetchAvailableSeats error:", err);
-      toast({ title: "Error", description: "Failed to fetch booked seats.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to fetch booked seats.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -48,38 +55,59 @@ export const ReleaseSeat = () => {
 
   const releaseSeat = async () => {
     if (!selectedBooking) {
-      toast({ title: "Error", description: "Select a seat to release.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Select a seat to release.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!endDate) {
+      toast({
+        title: "Error",
+        description: "Please select an end date.",
+        variant: "destructive",
+      });
       return;
     }
 
     try {
       setIsLoading(true);
 
-      const yesterdayISO = new Date(new Date().setDate(new Date().getDate() - 1)).toISOString();
-
-      // 1️⃣ Truncate booking end_time
+      // Update booking with user-selected end date
       const { error: updateError } = await supabase
         .from("bookings")
-        .update({ membership_end_date: yesterdayISO })
+        .update({ membership_end_date: endDate })
         .eq("id", selectedBooking.id);
 
       if (updateError) throw updateError;
 
-      // 2️⃣ Create zero-amount transaction for audit
+      // Create zero-amount transaction for audit
       await supabase.from("transactions").insert({
         booking_id: selectedBooking.id,
         user_id: selectedBooking.user_id,
         amount: 0,
         status: "completed",
-        admin_notes: `Seat released. Booking end truncated to ${yesterdayISO.slice(0, 10)}`,
+        admin_notes: `Seat released. Booking end set to ${endDate}`,
       });
 
-      toast({ title: "Success", description: `Seat ${selectedBooking.seats?.seat_number} released.` });
+      toast({
+        title: "Success",
+        description: `Seat ${selectedBooking.seats?.seat_number} released.`,
+      });
+
+      // Reset selections and refresh
       setSelectedBooking(null);
+      setEndDate("");
       fetchAvailableSeats();
     } catch (err) {
       console.error("❌ releaseSeat error:", err);
-      toast({ title: "Error", description: "Failed to release seat.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to release seat.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -87,6 +115,7 @@ export const ReleaseSeat = () => {
 
   const handleBack = () => {
     setSelectedBooking(null);
+    setEndDate("");
   };
 
   return (
@@ -99,8 +128,13 @@ export const ReleaseSeat = () => {
           <select
             value={selectedBooking?.id || ""}
             onChange={(e) => {
-              const booking = availableSeats.find(b => b.id === e.target.value) || null;
+              const booking = availableSeats.find((b) => b.id === e.target.value) || null;
               setSelectedBooking(booking);
+              setEndDate(
+                booking?.membership_end_date
+                  ? booking.membership_end_date.slice(0, 10)
+                  : ""
+              ); // default end date
             }}
             className="w-full p-2 border rounded"
           >
@@ -117,15 +151,38 @@ export const ReleaseSeat = () => {
       {selectedBooking && (
         <div className="border p-3 rounded bg-gray-50 space-y-2">
           <h4 className="font-semibold mb-2">Booking Details</h4>
-          <p><strong>User:</strong> {selectedBooking.users?.name} ({selectedBooking.users?.email})</p>
-          <p><strong>Seat:</strong> {selectedBooking.seats?.seat_number}</p>
           <p>
-            <strong>Validity:</strong> {selectedBooking.membership_start_date?.slice(0,10)} to {selectedBooking.membership_end_date?.slice(0,10)}
+            <strong>User:</strong> {selectedBooking.users?.name} (
+            {selectedBooking.users?.email})
           </p>
-          <p className="text-sm text-gray-500 mt-2">Confirm before releasing this seat.</p>
+          <p>
+            <strong>Seat:</strong> {selectedBooking.seats?.seat_number}
+          </p>
+          <p>
+            <strong>Validity:</strong>{" "}
+            {selectedBooking.membership_start_date?.slice(0, 10)} to{" "}
+            {selectedBooking.membership_end_date?.slice(0, 10)}
+          </p>
+
+          <div className="mt-2">
+            <Label>Set Membership End Date</Label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full p-2 border rounded"
+              min={selectedBooking.membership_start_date?.slice(0, 10) || undefined} // prevent selecting before start
+            />
+          </div>
+
+          <p className="text-sm text-gray-500 mt-2">
+            Confirm before releasing this seat.
+          </p>
 
           <div className="flex justify-end gap-2 mt-2">
-            <Button variant="outline" onClick={handleBack}>Back</Button>
+            <Button variant="outline" onClick={handleBack}>
+              Back
+            </Button>
             <Button
               variant="destructive"
               onClick={releaseSeat}
