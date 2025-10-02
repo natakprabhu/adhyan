@@ -67,6 +67,13 @@ export const AdminDashboard = () => {
       .gte("membership_end_date", nowISO)
       .eq("status", "confirmed");
 
+      if (fixedError) {
+  console.error("Error fetching fixed bookings:", fixedError);
+} else {
+  console.log("Fixed booking IDs:", fixedBookings?.map(b => b.id));
+}
+
+
     // Floating seats (active & paid)
     const { count: floatCount } = await supabase.from("bookings")
       .select("id", { count: "exact" })
