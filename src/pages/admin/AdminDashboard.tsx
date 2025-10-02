@@ -137,21 +137,33 @@ export const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Logout Button */}
-          {/* Admin Header and Button */}
-  <div className="mb-6">
- 
-    <SaveSeatStatusButton />
-  </div>
-        <button
-          onClick={handleLogout}
-          className="flex items-center space-x-2 px-3 py-1 bg-red-500 text-white rounded-full text-sm font-medium hover:bg-red-600 transition"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1m0-10V5" />
-          </svg>
-          <span>Logout</span>
-        </button>
+{/* Admin Header and Buttons */}
+<div className="flex items-center justify-between mb-6 gap-4">
+  {/* Save Seat Status Button */}
+  <SaveSeatStatusButton />
+
+  {/* Logout Button */}
+  <button
+    onClick={handleLogout}
+    className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-4 w-4"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1m0-10V5"
+      />
+    </svg>
+    <span>Logout</span>
+  </button>
+</div>
 
       </header>
 
