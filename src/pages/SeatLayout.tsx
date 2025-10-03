@@ -81,7 +81,7 @@ export const SeatLayout = () => {
       </div>
     );
   };
-rttyu
+
   const EntryArrow = () => (
     <div className="flex flex-col items-center mt-1">
       <span className="text-[10px] mb-1 text-gray-700">Entry</span>
