@@ -721,7 +721,23 @@ export const FixedUsersManagement = () => {
 
       {/* Repeat Booking Modal */}
 
-<Dialog open={isRepeatDialogOpen} onOpenChange={setIsRepeatDialogOpen}>
+{/*<Dialog open={isRepeatDialogOpen} onOpenChange={setIsRepeatDialogOpen}>*/}
+<Dialog
+  open={isRepeatDialogOpen}
+  onOpenChange={(open) => {
+    setIsRepeatDialogOpen(open);
+    if (!open) {
+      setSelectedUser(null);
+      setRepeatBookingData({
+        startDate: '',
+        monthlyCost: 0,
+        seatNumber: 0,
+        durationMonths: 1,
+      });
+    }
+  }}
+>
+
   <DialogContent className="max-w-lg">
     <DialogHeader>
       <DialogTitle>Repeat Booking: {selectedUser?.name}</DialogTitle>
