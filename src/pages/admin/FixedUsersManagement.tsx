@@ -473,12 +473,21 @@ export const FixedUsersManagement = () => {
       toast({ title: 'Success', description: 'Repeat booking request submitted.' });
       await fetchFixedUsers();
       await fetchUserTransactions(selectedUser.id);
-      setIsRepeatDialogOpen(false);
+      setIsRepeatDialogOpen(false);  // Close modal
+      setSelectedUser(null);         // Clear selected user to prevent reopening
+      setRepeatBookingData({          // Reset the repeat booking form
+        startDate: '',
+        monthlyCost: 0,
+        seatNumber: 0,
+        durationMonths: 1,
+      });
+
     } catch (err: any) {
       console.error('Error repeating booking:', err);
       toast({ title: 'Error', description: 'Failed to repeat booking.', variant: 'destructive' });
     } finally {
       setIsRepeating(false);
+
     }
   };
 
