@@ -756,7 +756,7 @@ export const FixedUsersManagement = () => {
             <div><Label>Seat Type</Label>{getSeatTypeBadge(selectedUser.seat_type)}</div>
             <div><Label>Last Membership Start</Label><p>{formatDate(selectedUser.validity_from || '')}</p></div>
             <div><Label>Last Membership End</Label><p>{formatDate(selectedUser.validity_to || '')}</p></div>
-            <div><Label>Last Monthly Cost</Label><p>₹{selectedUser.monthly_cost || 0}</p></div>
+            
           </CardContent>
         </Card>
 
@@ -792,16 +792,14 @@ export const FixedUsersManagement = () => {
               />
             </div>
 
-            <div>
-              <Label>Monthly Cost</Label>
-              <Input
-                type="number"
+               <Input
+                type="hidden"
                 value={repeatBookingData.monthlyCost}
                 onChange={(e) =>
                   setRepeatBookingData({ ...repeatBookingData, monthlyCost: Number(e.target.value) })
                 }
               />
-            </div>
+
 
             <div>
               <Label>Duration (Months)</Label>
