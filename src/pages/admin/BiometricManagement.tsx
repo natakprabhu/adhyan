@@ -136,7 +136,7 @@ export const BiometricManagement = () => {
     const grid = [];
     const assignedIds = new Set(assignments.map(a => a.biometric_id));
 
-    for (let i = 1; i <= 100; i++) {
+    for (let i = 1; i <= 200; i++) {
       const isAssigned = assignedIds.has(i);
       const assignment = assignments.find(a => a.biometric_id === i);
 
@@ -205,7 +205,7 @@ export const BiometricManagement = () => {
             <Fingerprint className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{assignments.length}/100</div>
+            <div className="text-2xl font-bold">{assignments.length}/200</div>
           </CardContent>
         </Card>
         
@@ -225,7 +225,7 @@ export const BiometricManagement = () => {
             <UserCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{100 - assignments.length}</div>
+            <div className="text-2xl font-bold">{200 - assignments.length}</div>
           </CardContent>
         </Card>
       </div>
@@ -263,7 +263,7 @@ export const BiometricManagement = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Fingerprint className="h-5 w-5" />
-            Biometric ID Grid (1-100)
+            Biometric ID Grid (1-200)
           </CardTitle>
           <CardDescription>
             Click on available IDs to assign them to approved users. Green boxes are assigned.
@@ -273,51 +273,6 @@ export const BiometricManagement = () => {
           <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
             {generateBiometricGrid()}
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Assigned Biometrics */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UserCheck className="h-5 w-5" />
-            Currently Assigned Biometric IDs
-          </CardTitle>
-          <CardDescription>
-            All users with assigned biometric IDs
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {assignments.length === 0 ? (
-            <p className="text-center text-muted-foreground py-4">
-              No biometric IDs assigned yet
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {assignments.map((assignment) => (
-                <div key={assignment.id} className="flex justify-between items-center border rounded-lg p-3">
-                  <div>
-                    <div className="font-medium">
-                      Biometric ID: {assignment.biometric_id}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {assignment.users.name} ({assignment.users.email})
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Assigned: {new Date(assignment.assigned_at).toLocaleDateString()}
-                    </div>
-                  </div>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => unassignBiometric(assignment.id)}
-                  >
-                    Remove
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>
