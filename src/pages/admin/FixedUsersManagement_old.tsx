@@ -54,210 +54,6 @@ interface UserTransaction {
   admin_notes?: string;
 }
 
-// Seat lookup array
-const allSeats = [
-  {
-    "id": "5878e430-6cc7-4010-a5cd-ed110a2a0d24",
-    "seat_number": 1
-  },
-  {
-    "id": "a07d07ac-a1f4-42d0-97a7-a33d8f4c8e86",
-    "seat_number": 2
-  },
-  {
-    "id": "ef8635ee-8d12-4a04-aadc-60d10a07a52a",
-    "seat_number": 3
-  },
-  {
-    "id": "965728ae-0646-4498-99af-fe46bd31d1db",
-    "seat_number": 4
-  },
-  {
-    "id": "78e9bab7-2732-4627-918f-73b7da81ca4d",
-    "seat_number": 5
-  },
-  {
-    "id": "5a13f1d1-31bd-4679-aa44-d1e89cfc44ec",
-    "seat_number": 6
-  },
-  {
-    "id": "dcfe71a1-f71f-4a12-85bc-2763026f5e2d",
-    "seat_number": 7
-  },
-  {
-    "id": "7aacb08d-0947-4093-95ae-435167be9672",
-    "seat_number": 8
-  },
-  {
-    "id": "ff62641f-a3b4-46ce-95fd-f479180da2f6",
-    "seat_number": 9
-  },
-  {
-    "id": "1add07cc-416d-4430-b2e5-4a17df879d96",
-    "seat_number": 10
-  },
-  {
-    "id": "066d6cec-aa95-485c-abf1-ae35286119d5",
-    "seat_number": 11
-  },
-  {
-    "id": "6974b7ec-67d9-4d48-9c91-dc6757e95a13",
-    "seat_number": 12
-  },
-  {
-    "id": "a22ebbb7-4b2b-4f9e-8fc4-4478a42217bd",
-    "seat_number": 13
-  },
-  {
-    "id": "0681b1d2-f081-4718-9e6b-0bcaf6e4cea5",
-    "seat_number": 14
-  },
-  {
-    "id": "66ad9ada-6009-4723-8a92-c9d79938d13a",
-    "seat_number": 15
-  },
-  {
-    "id": "5f3b9888-7543-4111-94c2-ccc818ca6217",
-    "seat_number": 16
-  },
-  {
-    "id": "2d49888e-c6c9-4e45-bec3-7630d4469944",
-    "seat_number": 17
-  },
-  {
-    "id": "5bfb10d9-5b03-4743-b684-85d48c732b1f",
-    "seat_number": 18
-  },
-  {
-    "id": "1e78cf78-d4ea-4498-93fb-9eeaa53bc521",
-    "seat_number": 19
-  },
-  {
-    "id": "75bf52b7-281e-40de-b741-9b517c576f43",
-    "seat_number": 20
-  },
-  {
-    "id": "9f10ccf0-1903-4a5b-883e-638fe133e2e7",
-    "seat_number": 21
-  },
-  {
-    "id": "03a50fd9-277b-42cc-a327-5a9f751f74ae",
-    "seat_number": 22
-  },
-  {
-    "id": "a84ba944-f428-4f64-ad0f-d92172a76a20",
-    "seat_number": 23
-  },
-  {
-    "id": "ec3d9196-e601-4f11-ad71-383b4507e1db",
-    "seat_number": 24
-  },
-  {
-    "id": "885c957b-7332-4cf6-a3ef-41df3bf04c58",
-    "seat_number": 25
-  },
-  {
-    "id": "7b6a9638-e02c-4302-adbd-f329fc73efee",
-    "seat_number": 26
-  },
-  {
-    "id": "b0aee9ca-d05f-4ad6-b410-7c38c42647ed",
-    "seat_number": 27
-  },
-  {
-    "id": "8051a904-f5f2-44fe-8405-51b1b1cb012b",
-    "seat_number": 28
-  },
-  {
-    "id": "74ae42c6-bb23-418b-ad5e-6dc2cd4b103b",
-    "seat_number": 29
-  },
-  {
-    "id": "0ceb1d2f-a023-490b-a727-2cdc42b4e88d",
-    "seat_number": 30
-  },
-  {
-    "id": "5f49b62d-19d2-4756-8e49-60afe7312da7",
-    "seat_number": 31
-  },
-  {
-    "id": "06a45788-556a-476b-9994-45476fb7506d",
-    "seat_number": 32
-  },
-  {
-    "id": "39a09bdb-c878-4468-8c50-6a8ca784efe8",
-    "seat_number": 33
-  },
-  {
-    "id": "b579b766-c56c-4502-80d8-287d3407e1fc",
-    "seat_number": 34
-  },
-  {
-    "id": "cce35263-d5b5-4b92-bd89-716eedbec968",
-    "seat_number": 35
-  },
-  {
-    "id": "cc23281b-04b9-46a6-97ca-1047f3a290ba",
-    "seat_number": 36
-  },
-  {
-    "id": "b63411c4-71d0-43dc-9f22-3337868ee5fa",
-    "seat_number": 37
-  },
-  {
-    "id": "ca0ba5b5-c0e6-4f85-b4de-7d304e14fd12",
-    "seat_number": 38
-  },
-  {
-    "id": "8c9bb693-d1b9-4b61-8983-f97d7c7be5bd",
-    "seat_number": 39
-  },
-  {
-    "id": "3ea47f6b-a1a2-4f9e-9f6a-275cd4c910e5",
-    "seat_number": 40
-  },
-  {
-    "id": "dafb3b97-eff5-47b9-a735-5d867005bc66",
-    "seat_number": 41
-  },
-  {
-    "id": "1bc77fe6-38da-4a3a-b4d9-e5d0f640d986",
-    "seat_number": 42
-  },
-  {
-    "id": "eb07ca9d-9c9e-4e74-9a8f-e2d531fd7626",
-    "seat_number": 43
-  },
-  {
-    "id": "6688e240-fb6b-40b5-97df-29d0e0d112d1",
-    "seat_number": 44
-  },
-  {
-    "id": "4e067e5e-c994-4e4b-9ed8-d1495f51eed0",
-    "seat_number": 45
-  },
-  {
-    "id": "3c5a6e00-619b-460a-b051-16c858c5915a",
-    "seat_number": 46
-  },
-  {
-    "id": "7c2fe8a9-0600-4eaf-b6ae-b971a945d93f",
-    "seat_number": 47
-  },
-  {
-    "id": "ea7148aa-a6ab-4a94-a10f-5eda68a3713a",
-    "seat_number": 48
-  },
-  {
-    "id": "593db843-e133-48c1-ba23-5b4b3e92cee2",
-    "seat_number": 49
-  },
-  {
-    "id": "0c5fca0d-9a90-4d56-a778-af25d6cc0681",
-    "seat_number": 50
-  }
-]
-
 export const FixedUsersManagement = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [userData, setUserData] = useState<any[]>([]);
@@ -277,18 +73,20 @@ export const FixedUsersManagement = () => {
   // Sorting state
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 
+
   // Filter state: 'all' | 'active' | 'expired'
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expired'>('all');
 
-  // Repeat Booking modal state
-  const [isRepeatDialogOpen, setIsRepeatDialogOpen] = useState(false);
-  const [repeatBookingData, setRepeatBookingData] = useState({
-    startDate: '',       // Date admin selects
-    monthlyCost: 0,      // Default previous cost
-    seatNumber: 0,       // Fixed seat number
-    durationMonths: 1,   // Duration of new booking
-  });
-  const [isRepeating, setIsRepeating] = useState(false); // loading state
+
+// Repeat Booking modal state
+const [isRepeatDialogOpen, setIsRepeatDialogOpen] = useState(false);
+const [repeatBookingData, setRepeatBookingData] = useState({
+  startDate: '',       // Date admin selects
+  monthlyCost: 0,      // Default previous cost
+  seatNumber: 0,       // Fixed seat number
+});
+const [isRepeating, setIsRepeating] = useState(false); // loading state
+
 
   useEffect(() => {
     fetchFixedUsers();
@@ -325,7 +123,6 @@ export const FixedUsersManagement = () => {
           let validity_to: string | null = null;
           let seat_type: string | null = null;
           let seat_number: string | null = null;
-          let monthly_cost: number | null = null;
 
           if (bookings && bookings.length > 0) {
             const booking = bookings[0];
@@ -333,7 +130,6 @@ export const FixedUsersManagement = () => {
             validity_to = booking.membership_end_date || null;
             seat_type = booking.seat_category || null;
             seat_number = booking?.seats?.seat_number || null;
-            monthly_cost = Number(booking.monthly_cost || 0);
           }
 
           let days_remaining: number | null = null;
@@ -353,7 +149,6 @@ export const FixedUsersManagement = () => {
             days_remaining,
             seat_type,
             seat_number,
-            monthly_cost,
           };
         })
       );
@@ -395,6 +190,7 @@ export const FixedUsersManagement = () => {
     }
   };
 
+
   const handleViewUser = async (user: User) => {
     setSelectedUser(user);
     await fetchUserTransactions(user.id);
@@ -404,7 +200,7 @@ export const FixedUsersManagement = () => {
   const handleAddTransaction = async () => {
     try {
       const { error } = await supabase.from("transactions").insert({
-        user_id: selectedUser?.id,
+        user_id: selectedUser.id,
         amount: Number(newTransaction.amount),
         status: "completed",
         admin_notes: newTransaction.admin_notes || null,
@@ -413,48 +209,43 @@ export const FixedUsersManagement = () => {
       if (error) throw error;
       toast({ title: "Success", description: "Transaction added successfully." });
       setNewTransaction({ amount: '', status: '', admin_notes: '' });
-      if (selectedUser) await fetchUserTransactions(selectedUser.id);
-    } catch (err: any) {
+      await fetchUserTransactions(selectedUser.id);
+    } catch (err) {
       toast({ title: "Error", description: "Failed to add transaction.", variant: "destructive" });
       console.error("Error adding transaction:", err.message);
     }
   };
 
-  const handleRepeatBookingModal = (user: User) => {
-    setSelectedUser(user);
-    setRepeatBookingData({
-      startDate: '',                     // Admin picks the start date
-      monthlyCost: user.monthly_cost || 0,
-      seatNumber: user.seat_number || 0,
-      durationMonths: 1,
-    });
-    setIsRepeatDialogOpen(true);
-  };
-
   const handleRepeatBooking = async () => {
     if (!selectedUser) return;
-    if (!repeatBookingData.startDate) {
-      toast({ title: 'Error', description: 'Please select start date.', variant: 'destructive' });
-      return;
-    }
 
     try {
       setIsRepeating(true);
+
+      const start = new Date(repeatBookingData.startDate);
 
       const startDate = new Date(repeatBookingData.startDate);
       startDate.setHours(14, 0, 0, 0);
 
       const endDate = new Date(startDate);
-      endDate.setMonth(endDate.getMonth() + repeatBookingData.durationMonths);
+      endDate.setMonth(endDate.getMonth() + 1);
       endDate.setHours(14, 0, 0, 0);
 
-      const seatObj = allSeats.find(s => s.seat_number === repeatBookingData.seatNumber);
-      const seatId = seatObj?.id;
+      const { data: lastBooking } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('user_id', selectedUser.id)
+        .eq('status', 'confirmed')
+        .eq('payment_status', 'paid')
+        .order('membership_start_date', { ascending: false })
+        .limit(1)
+        .single();
 
-      // Insert booking
+      const seatId = lastBooking?.seat_id;
+
       const { error: bookingError } = await supabase.from('bookings').insert({
         user_id: selectedUser.id,
-        seat_id: seatId, // ensure you map this properly if using separate seats table
+        seat_id: selectedUser.seat_id,
         type: 'membership',
         start_time: startDate.toISOString(),
         end_time: endDate.toISOString(),
@@ -462,24 +253,68 @@ export const FixedUsersManagement = () => {
         payment_status: 'pending',
         description: `Repeat booking of seat ${selectedUser.seat_number}`,
         seat_category: "fixed",
-        duration_months: repeatBookingData.durationMonths,
-        monthly_cost: repeatBookingData.monthlyCost,
+        duration_months: 1, // can be dynamic if needed
+        monthly_cost: selectedUser.monthly_cost || 0, // reuse previous cost
         membership_start_date: repeatBookingData.startDate,
         membership_end_date: endDate.toISOString().split('T')[0]
       });
 
+const bookingRow = {
+  user_id: selectedUser.id,
+  seat_id: selectedUser.seat_id,
+  type: 'membership',
+  start_time: startDate.toISOString(),
+  end_time: endDate.toISOString(),
+  status: 'pending',
+  payment_status: 'pending',
+  description: `Repeat booking of seat ${selectedUser.seat_number}`,
+  seat_category: "fixed",
+  duration_months: 1, // can be dynamic if needed
+  monthly_cost: selectedUser.monthly_cost || 0, // reuse previous cost
+  membership_start_date: repeatBookingData.startDate,
+  membership_end_date: endDate.toISOString().split('T')[0]
+};
+
+
+      console.log("Repeat booking row to insert:", bookingRow);
+
       if (bookingError) throw bookingError;
 
-      toast({ title: 'Success', description: 'Repeat booking request submitted.' });
+      const { error: txError } = await supabase.from('transactions').insert({
+        user_id: selectedUser.id,
+        amount: Number(repeatBookingData.amount),
+        status: 'completed',
+        admin_notes: 'Auto-added via Repeat Booking',
+      });
+
+      if (txError) throw txError;
+
+      toast({ title: 'Success', description: 'Repeat booking created successfully.' });
+
       await fetchFixedUsers();
       await fetchUserTransactions(selectedUser.id);
+
       setIsRepeatDialogOpen(false);
-    } catch (err: any) {
+      setRepeatBookingData({ amount: '', startDate: '' });
+    } catch (err) {
       console.error('Error repeating booking:', err);
       toast({ title: 'Error', description: 'Failed to repeat booking.', variant: 'destructive' });
     } finally {
       setIsRepeating(false);
     }
+  };
+
+
+  const handleRepeatBookingModal = (user: User) => {
+    setSelectedUser(user);
+
+    setRepeatBookingData({
+      startDate: '',                  // Admin picks the start date
+      monthlyCost: user.monthly_cost || 0,  // Reuse previous cost
+      seatNumber: user.seat_number || 0,    // Use actual seat number for fixed seat
+    });
+
+    setIsRepeatDialogOpen(true);
   };
 
   const getSeatTypeBadge = (seatType?: string) => {
@@ -563,7 +398,7 @@ export const FixedUsersManagement = () => {
 
   return (
     <div className="space-y-6">
-   <Card>
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
@@ -709,99 +544,42 @@ export const FixedUsersManagement = () => {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={isRepeatDialogOpen} onOpenChange={setIsRepeatDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Repeat Booking: {selectedUser?.name}</DialogTitle>
+            <DialogDescription>Enter start date for repeat booking</DialogDescription>
+          </DialogHeader>
 
-      {/* Repeat Booking Modal */}
+          {selectedUser && (
+            <div className="space-y-4">
+              <div>
+                <Label>Start Date</Label>
+                <Input
+                  type="date"
+                  value={repeatBookingData.startDate}
+                  onChange={(e) => setRepeatBookingData({ ...repeatBookingData, startDate: e.target.value })}
+                />
+              </div>
 
-<Dialog open={isRepeatDialogOpen} onOpenChange={setIsRepeatDialogOpen}>
-  <DialogContent className="max-w-lg">
-    <DialogHeader>
-      <DialogTitle>Repeat Booking: {selectedUser?.name}</DialogTitle>
-      <DialogDescription>
-        Review seat details and confirm repeat booking
-      </DialogDescription>
-    </DialogHeader>
+              <div>
+                <Label>Monthly Cost</Label>
+                <Input
+                  type="number"
+                  value={repeatBookingData.monthlyCost}
+                  onChange={(e) => setRepeatBookingData({ ...repeatBookingData, monthlyCost: Number(e.target.value) })}
+                />
+              </div>
 
-    {selectedUser && (
-      <div className="space-y-6">
-        {/* Seat & Membership Info */}
-        <Card className="bg-gray-50 border">
-          <CardHeader><CardTitle>Seat & Membership Info</CardTitle></CardHeader>
-          <CardContent className="grid grid-cols-2 gap-4">
-            <div><Label>Current Seat Number</Label><p className="font-medium">{selectedUser.seat_number || '-'}</p></div>
-            <div><Label>Seat Type</Label>{getSeatTypeBadge(selectedUser.seat_type)}</div>
-            <div><Label>Last Membership Start</Label><p>{formatDate(selectedUser.validity_from || '')}</p></div>
-            <div><Label>Last Membership End</Label><p>{formatDate(selectedUser.validity_to || '')}</p></div>
-            <div><Label>Last Monthly Cost</Label><p>₹{selectedUser.monthly_cost || 0}</p></div>
-          </CardContent>
-        </Card>
-
-        {/* Repeat Booking Input */}
-        <Card className="bg-white border">
-          <CardHeader><CardTitle>Repeat Booking Details</CardTitle></CardHeader>
-          <CardContent className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Select Seat Number</Label>
-              <select
-                className="border rounded px-2 py-1 w-full"
-                value={repeatBookingData.seatNumber}
-                onChange={(e) =>
-                  setRepeatBookingData({ ...repeatBookingData, seatNumber: Number(e.target.value) })
-                }
-              >
-                {allSeats.map(seat => (
-                  <option key={seat.id} value={seat.seat_number}>
-                    {seat.seat_number}
-                  </option>
-                ))}
-              </select>
+              <div className="flex justify-end">
+                <Button onClick={handleRepeatBooking} disabled={isRepeating}>
+                  {isRepeating ? "Booking..." : "Create Repeat Booking"}
+                </Button>
+              </div>
             </div>
-
-            <div>
-              <Label>Start Date</Label>
-              <Input
-                type="date"
-                value={repeatBookingData.startDate}
-                onChange={(e) =>
-                  setRepeatBookingData({ ...repeatBookingData, startDate: e.target.value })
-                }
-              />
-            </div>
-
-            <div>
-              <Label>Monthly Cost</Label>
-              <Input
-                type="number"
-                value={repeatBookingData.monthlyCost}
-                onChange={(e) =>
-                  setRepeatBookingData({ ...repeatBookingData, monthlyCost: Number(e.target.value) })
-                }
-              />
-            </div>
-
-            <div>
-              <Label>Duration (Months)</Label>
-              <Input
-                type="number"
-                value={repeatBookingData.durationMonths}
-                onChange={(e) =>
-                  setRepeatBookingData({ ...repeatBookingData, durationMonths: Number(e.target.value) })
-                }
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Submit Button */}
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => setIsRepeatDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleRepeatBooking} disabled={isRepeating}>
-            {isRepeating ? "Submitting..." : "Submit Booking Request"}
-          </Button>
-        </div>
-      </div>
-    )}
-  </DialogContent>
-</Dialog>
+          )}
+        </DialogContent>
+      </Dialog>
 
     </div>
   );
