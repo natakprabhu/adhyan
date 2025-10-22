@@ -136,7 +136,7 @@ export const BiometricManagement = () => {
     const grid = [];
     const assignedIds = new Set(assignments.map(a => a.biometric_id));
 
-    for (let i = 1; i <= 200; i++) {
+    for (let i = 51; i <= 200; i++) {
       const isAssigned = assignedIds.has(i);
       const assignment = assignments.find(a => a.biometric_id === i);
 

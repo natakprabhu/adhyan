@@ -9,7 +9,7 @@ import { GanttChart } from './GanttChart';
 import { ManageBookings } from './ManageBookings';
 import { FixedUsersManagement } from "./FixedUsersManagement";
 import { FloatingUsersManagement } from "./FloatingUsersManagement";
-import { LimitedUsersManagement } from "./LimitedUsersManagement";
+import { MasterAdminView } from "./MasterAdminView";
 import { WalletManagement } from "./WalletManagement";
 import { SeatLayout } from "./SeatLayout";
 import { PasswordManager } from "./PasswordManager";
@@ -201,7 +201,7 @@ export const AdminDashboard = () => {
     <TabsTrigger value="users">All Users</TabsTrigger>
     <TabsTrigger value="fixed-users">Fixed Users</TabsTrigger>
     <TabsTrigger value="floating-users">Floating Users</TabsTrigger>
-    <TabsTrigger value="limited-users">Limited Hours Users</TabsTrigger>
+    <TabsTrigger value="limited-users">Master Table</TabsTrigger>
     <TabsTrigger value="biometric">Biometric</TabsTrigger>
     <TabsTrigger value="schedule">Seat Status</TabsTrigger>
     <TabsTrigger value="layout">Seat Layout</TabsTrigger>
@@ -214,7 +214,7 @@ export const AdminDashboard = () => {
   <TabsContent value="users"><UsersManagement /></TabsContent>
   <TabsContent value="fixed-users"><FixedUsersManagement /></TabsContent>
   <TabsContent value="floating-users"><FloatingUsersManagement /></TabsContent>
-  <TabsContent value="limited-users"><LimitedUsersManagement /></TabsContent>
+  <TabsContent value="limited-users"><MasterAdminView /></TabsContent>
   <TabsContent value="biometric"><BiometricManagement /></TabsContent>
   <TabsContent value="schedule"><GanttChart /></TabsContent>
   <TabsContent value="layout"><SeatLayout /></TabsContent>
