@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -8,24 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { Calendar, Eye, Clock, Plus } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter, // ✅ add this
-} from "@/components/ui/dialog";
-
-
-interface RepeatBookingData {
-  startDate: string;
-  durationMonths: number;
-  monthlyCost: number;
-}
-
 
 interface User {
   id: string;
@@ -218,68 +201,6 @@ export const FloatingUsersManagement = () => {
     return <Badge variant="secondary">Active</Badge>;
   };
 
-
-
-// ⬇️ Inside FloatingUsersManagement component
-const [isRepeatDialogOpen, setIsRepeatDialogOpen] = useState(false);
-const [repeatBookingData, setRepeatBookingData] = useState<RepeatBookingData>({
-  startDate: "",
-  durationMonths: 1,
-  monthlyCost: 0,
-});
-
-// 🧩 REPEAT BOOKING LOGIC
-const handleRepeatBooking = async () => {
-  if (!selectedUser?.id || !repeatBookingData.startDate || !repeatBookingData.durationMonths) {
-    toast({
-      title: "Error",
-      description: "Missing required booking details.",
-      variant: "destructive",
-    });
-    return;
-  }
-
-  try {
-    const startDate = new Date(repeatBookingData.startDate);
-    const endDate = new Date(startDate);
-    endDate.setMonth(startDate.getMonth() + repeatBookingData.durationMonths);
-
-    const newBooking = {
-      user_id: selectedUser.id,
-      type: "floating",
-      start_time: startDate.toISOString(),
-      end_time: endDate.toISOString(),
-      status: "confirmed",
-      payment_status: "paid",
-      membership_start_date: startDate.toISOString(),
-      membership_end_date: endDate.toISOString(),
-      seat_category: "floating",
-      monthly_cost: repeatBookingData.monthlyCost,
-    };
-
-    const { error } = await supabase.from("bookings").insert([newBooking]);
-    if (error) throw error;
-
-    toast({
-      title: "Repeat Booking Created",
-      description: `${selectedUser.name}'s floating booking renewed successfully.`,
-    });
-
-    setIsRepeatDialogOpen(false);
-    setRepeatBookingData({ startDate: "", durationMonths: 1, monthlyCost: 0 });
-    fetchFloatingUsers(); // refresh list
-  } catch (error) {
-    console.error("Repeat booking error:", error);
-    toast({
-      title: "Error",
-      description: "Failed to create repeat booking.",
-      variant: "destructive",
-    });
-  }
-};
-
-
-
   const handleSort = (key: string) => {
     setSortConfig((prev) => {
       if (prev && prev.key === key) {
@@ -400,7 +321,8 @@ const handleRepeatBooking = async () => {
             <TableBody>
               {filteredUsers.map((user, index) => (
                 <TableRow key={user.id}>
-                  <TableCell>{index + 1}</TableCell><TableCell>{user.name}</TableCell>
+                  <TableCell>{index + 1}</TableCell> {/* 👈 Serial No. */}
+                  <TableCell className="font-medium">{user.name}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>{getStatusBadge(user)}</TableCell>
                   <TableCell>{user.validity_from ? formatDate(user.validity_from) : '-'}</TableCell>
@@ -412,19 +334,7 @@ const handleRepeatBooking = async () => {
                       <Button variant="outline" size="sm" onClick={() => handleViewUser(user)}>
                         <Eye className="h-4 w-4 mr-1" />
                         View
-                      </Button> 
-                     <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedUser(user);
-                          setIsRepeatDialogOpen(true);
-                        }}
-                      >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Repeat
-                      </Button>
-                  
+                      </Button>                      
                     </div>
                   </TableCell>
                 </TableRow>
@@ -521,57 +431,6 @@ const handleRepeatBooking = async () => {
           )}
         </DialogContent>
       </Dialog>
-
-      {/* 🌀 Repeat Booking Dialog */}
-<Dialog open={isRepeatDialogOpen} onOpenChange={setIsRepeatDialogOpen}>
-  <DialogContent className="max-w-md">
-    <DialogHeader>
-      <DialogTitle>Repeat Booking: {selectedUser?.name}</DialogTitle>
-      <DialogDescription>
-        Extend floating seat membership for this user.
-      </DialogDescription>
-    </DialogHeader>
-
-    <div className="space-y-4">
-      <div>
-        <Label>Start Date</Label>
-        <Input
-          type="date"
-          value={repeatBookingData.startDate}
-          onChange={(e) =>
-            setRepeatBookingData({ ...repeatBookingData, startDate: e.target.value })
-          }
-        />
-      </div>
-      <div>
-        <Label>Duration (Months)</Label>
-        <Input
-          type="number"
-          min={1}
-          value={repeatBookingData.durationMonths}
-          onChange={(e) =>
-            setRepeatBookingData({ ...repeatBookingData, durationMonths: Number(e.target.value) })
-          }
-        />
-      </div>
-      <div>
-        <Label>Monthly Cost</Label>
-        <Input
-          type="number"
-          value={repeatBookingData.monthlyCost}
-          onChange={(e) =>
-            setRepeatBookingData({ ...repeatBookingData, monthlyCost: Number(e.target.value) })
-          }
-        />
-      </div>
-    </div>
-
-    <DialogFooter className="mt-4">
-      <Button onClick={handleRepeatBooking}>Confirm Repeat Booking</Button>
-    </DialogFooter>
-  </DialogContent>
-</Dialog>
-
     </div>
   );
 };
