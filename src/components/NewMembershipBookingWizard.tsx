@@ -51,7 +51,7 @@ export default function NewMembershipBookingWizard({
   }, [isOpen]);
 
   const calculateMonthlyCost = () => {
-    return selectedCategory === 'fixed' ? 3300 : 2200;
+    return selectedCategory === 'fixed' ? 3500 : 2200;
   };
 
   const calculateTotalCost = () => {
