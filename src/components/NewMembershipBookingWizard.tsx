@@ -341,7 +341,7 @@ const totalSteps = selectedCategory === "floating" ? 4 : 5;
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="text-center">
-                      <span className="text-4xl font-bold text-primary">₹3,300</span>
+                      <span className="text-4xl font-bold text-primary">₹3,500</span>
                       <span className="text-lg text-muted-foreground">/month</span>
                     </div>
                     <div className="space-y-3">
