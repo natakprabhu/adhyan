@@ -374,7 +374,7 @@ export const FixedUsersManagement = () => {
         u.seat_type.toLowerCase() === 'fixed'
       );
     });
-    setUsers(usersData || []);
+    //setUsers(usersData || []);
     setUsers(filteredUsers);
     
     
