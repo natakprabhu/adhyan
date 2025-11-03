@@ -336,15 +336,23 @@ export const FixedUsersManagement = () => {
             monthly_cost = Number(booking.monthly_cost || 0);
           }
 
-          let days_remaining: number | null = null;
+          let days_remaining: string | null = null;
           if (validity_to) {
             const today = new Date();
             const endDate = new Date(validity_to);
-            days_remaining = Math.max(
-              Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)),
-              0
+            const diffDays = Math.ceil(
+              (endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
             );
+          
+            if (diffDays > 0) {
+              days_remaining = `Active (${diffDays} day${diffDays > 1 ? 's' : ''} left)`;
+            } else if (diffDays === 0) {
+              days_remaining = 'Expires today';
+            } else {
+              days_remaining = `Expired ${Math.abs(diffDays)} day${Math.abs(diffDays) > 1 ? 's' : ''} ago`;
+            }
           }
+
 
           return {
             ...user,
@@ -360,22 +368,8 @@ export const FixedUsersManagement = () => {
 
       const fixedUsers = enrichedUsers.filter(u => u.seat_type?.toLowerCase() === 'fixed');
      
-
-    // ✅ Filter: show only 'fixed' seat users with validity_to >= today - 5 days
-    const today = new Date();
-    const fiveDaysAgo = new Date();
-    fiveDaysAgo.setDate(today.getDate() - 5);
-
-    const filteredUsers = enrichedUsers.filter(u => {
-      if (!u.validity_to || !u.seat_type) return false;
-      const expiryDate = new Date(u.validity_to);
-      return (
-        expiryDate >= fiveDaysAgo &&
-        u.seat_type.toLowerCase() === 'fixed'
-      );
-    });
-    //setUsers(usersData || []);
-    setUsers(filteredUsers);
+    setUsers(usersData || []);
+    //setUsers(filteredUsers);
     
     
     } catch (error) {
