@@ -10,6 +10,9 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from '@/hooks/use-toast';
 import { Calendar, Eye, Clock, Plus } from 'lucide-react';
+import { Trash2 } from 'lucide-react'; // ✅ if you're using lucide-react icons
+
+
 import {
   Dialog,
   DialogContent,
@@ -70,6 +73,9 @@ export const FloatingUsersManagement = () => {
 
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 
+  // Filter state: 'all' | 'active' | 'expired'
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expired'>('all');
+
   useEffect(() => {
     fetchFloatingUsers();
   }, []);
@@ -113,11 +119,15 @@ export const FloatingUsersManagement = () => {
           if (validity_to) {
             const today = new Date();
             const endDate = new Date(validity_to);
-            days_remaining = Math.max(
-              Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)),
-              0
-            );
+
+            // Normalize both dates to start of their day (remove time zone influence)
+            const todayUTC = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+            const endUTC = Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+
+            // Integer difference in days (can be negative)
+            days_remaining = Math.ceil((endUTC - todayUTC) / (1000 * 60 * 60 * 24));
           }
+
 
           return {
             ...user,
@@ -337,11 +347,26 @@ const handleRepeatBooking = async () => {
     return 0;
   });
 
-  const filteredUsers = sortedUsers.filter(u =>
-    u.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.phone?.toLowerCase().includes(searchTerm.toLowerCase())
+  // const filteredUsers = sortedUsers.filter(u =>
+  //   u.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //   u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //   u.phone?.toLowerCase().includes(searchTerm.toLowerCase())
+  // );
+
+  const filteredUsers = sortedUsers.filter(u => 
+    (u.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+     u.phone?.toLowerCase().includes(searchTerm.toLowerCase()))
+    &&
+    (
+      filterStatus === 'all' ||
+      (filterStatus === 'active' && u.days_remaining > 0) ||
+      (filterStatus === 'expired' && u.days_remaining <= 0 && u.days_remaining >= -5) ||
+      (filterStatus === 'spam' && u.days_remaining < -5)
+    )
   );
+
+
+
 
   if (isLoading) return (
     <div className="flex items-center justify-center h-64">
@@ -369,6 +394,21 @@ const handleRepeatBooking = async () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+          <div className="flex gap-2">
+            <Button variant={filterStatus==='all'?'default':'outline'} onClick={() => setFilterStatus('all')}>All</Button>
+            <Button variant={filterStatus==='active'?'primary':'outline'} onClick={() => setFilterStatus('active')}>Active</Button>
+            <Button variant={filterStatus==='expired'?'primary':'outline'} onClick={() => setFilterStatus('expired')}>Expired</Button>
+            <button
+              onClick={() => setFilterStatus('spam')}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition
+                ${filterStatus === 'spam' ? 'bg-red-600 text-white' : 'bg-red-500 text-white hover:bg-red-600'}
+              `}
+            >
+              <Trash2 className="h-4 w-4" />
+              <span>Spam</span>
+            </button>
+          </div>
+
           <Table>
             <TableHeader>
               <TableRow>

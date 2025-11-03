@@ -11,6 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { Calendar, Eye, Clock, Plus } from 'lucide-react';
+import { Trash2 } from 'lucide-react'; // ✅ if you're using lucide-react icons
+
 
 interface User {
   id: string;
@@ -365,15 +367,15 @@ if (validity_to) {
 
       const fixedUsers = enrichedUsers.filter(u => u.seat_type?.toLowerCase() === 'fixed');
 
-     const filteredUsers = enrichedUsers.filter(u => {
-          if (u.days_remaining == null || !u.seat_type) return false;
+     // const filteredUsers = enrichedUsers.filter(u => {
+     //      if (u.days_remaining == null || !u.seat_type) return false;
         
-          const days = Number(u.days_remaining); // ensure it's numeric
-          return days >= -5 && u.seat_type.toLowerCase() === 'fixed';
-        });
+     //      const days = Number(u.days_remaining); // ensure it's numeric
+     //      return days >= -5 && u.seat_type.toLowerCase() === 'fixed';
+     //    });
 
       setUsers(usersData || []);
-      setUserData(filteredUsers);
+      setUserData(fixedUsers);
     } catch (error) {
       console.error('Error fetching fixed users:', error);
       toast({
@@ -568,14 +570,28 @@ if (validity_to) {
     return 0;
   });
 
-  const filteredUsers = sortedUsers.filter(u => 
-    (u.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-     u.phone?.toLowerCase().includes(searchTerm.toLowerCase()))
-    && (filterStatus === 'all' || 
-       (filterStatus === 'active' && u.days_remaining && u.days_remaining > 0) ||
-       (filterStatus === 'expired' && u.days_remaining <= 0))
-  );
+  // const filteredUsers = sortedUsers.filter(u => 
+  //   (u.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  //    u.phone?.toLowerCase().includes(searchTerm.toLowerCase()))
+  //   && (filterStatus === 'all' || 
+  //      (filterStatus === 'active' && u.days_remaining && u.days_remaining > 0) ||
+  //      (filterStatus === 'expired' && u.days_remaining <= 0))
+  // );
   
+const filteredUsers = sortedUsers.filter(u => 
+  (u.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+   u.phone?.toLowerCase().includes(searchTerm.toLowerCase()))
+  &&
+  (
+    filterStatus === 'all' ||
+    (filterStatus === 'active' && u.days_remaining > 0) ||
+    (filterStatus === 'expired' && u.days_remaining <= 0 && u.days_remaining >= -5) ||
+    (filterStatus === 'spam' && u.days_remaining < -5)
+  )
+);
+
+
+
   if (isLoading) return (
     <div className="flex items-center justify-center h-64">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -604,8 +620,17 @@ if (validity_to) {
           </div>
           <div className="flex gap-2">
             <Button variant={filterStatus==='all'?'default':'outline'} onClick={() => setFilterStatus('all')}>All</Button>
-            <Button variant={filterStatus==='active'?'default':'outline'} onClick={() => setFilterStatus('active')}>Active</Button>
-            <Button variant={filterStatus==='expired'?'default':'outline'} onClick={() => setFilterStatus('expired')}>Expired</Button>
+            <Button variant={filterStatus==='active'?'primary':'outline'} onClick={() => setFilterStatus('active')}>Active</Button>
+            <Button variant={filterStatus==='expired'?'primary':'outline'} onClick={() => setFilterStatus('expired')}>Expired</Button>
+            <button
+              onClick={() => setFilterStatus('spam')}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition
+                ${filterStatus === 'spam' ? 'bg-red-600 text-white' : 'bg-red-500 text-white hover:bg-red-600'}
+              `}
+            >
+              <Trash2 className="h-4 w-4" />
+              <span>Spam</span>
+            </button>
           </div>
 
           <Table>
