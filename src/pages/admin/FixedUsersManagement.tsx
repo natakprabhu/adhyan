@@ -359,9 +359,25 @@ export const FixedUsersManagement = () => {
       );
 
       const fixedUsers = enrichedUsers.filter(u => u.seat_type?.toLowerCase() === 'fixed');
+     
 
-      setUsers(usersData || []);
-      setUserData(fixedUsers);
+    // ✅ Filter: show only 'fixed' seat users with validity_to >= today - 5 days
+    const today = new Date();
+    const fiveDaysAgo = new Date();
+    fiveDaysAgo.setDate(today.getDate() - 5);
+
+    const filteredUsers = enrichedUsers.filter(u => {
+      if (!u.validity_to || !u.seat_type) return false;
+      const expiryDate = new Date(u.validity_to);
+      return (
+        expiryDate >= fiveDaysAgo &&
+        u.seat_type.toLowerCase() === 'fixed'
+      );
+    });
+    setUsers(usersData || []);
+    setUsers(filteredUsers);
+    
+    
     } catch (error) {
       console.error('Error fetching fixed users:', error);
       toast({
