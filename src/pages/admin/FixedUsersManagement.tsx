@@ -365,13 +365,13 @@ if (validity_to) {
 
       const fixedUsers = enrichedUsers.filter(u => u.seat_type?.toLowerCase() === 'fixed');
 
-      const filteredUsers = enrichedUsers.filter(u => {
-        if (u.days_remaining === null || !u.seat_type) return false;
-        return (
-          u.days_remaining >= -5 &&
-          u.seat_type.toLowerCase() === 'fixed'
-        );
-      });
+     const filteredUsers = enrichedUsers.filter(u => {
+          if (u.days_remaining == null || !u.seat_type) return false;
+        
+          const days = Number(u.days_remaining); // ensure it's numeric
+          return days >= -5 && u.seat_type.toLowerCase() === 'fixed';
+        });
+
       setUsers(usersData || []);
       setUserData(filteredUsers);
     } catch (error) {
