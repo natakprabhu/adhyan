@@ -336,24 +336,16 @@ export const FixedUsersManagement = () => {
             monthly_cost = Number(booking.monthly_cost || 0);
           }
 
-          let days_remaining: string | null = null;
+          let days_remaining: number | null = null;
           if (validity_to) {
             const today = new Date();
             const endDate = new Date(validity_to);
-            const diffDays = Math.ceil(
-              (endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+            days_remaining = Math.max(
+              Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)),
+              0
             );
-          
-            if (diffDays > 0) {
-              days_remaining = `Active (${diffDays} day${diffDays > 1 ? 's' : ''} left)`;
-            } else if (diffDays === 0) {
-              days_remaining = 'Expires today';
-            } else {
-              days_remaining = `Expired ${Math.abs(diffDays)} day${Math.abs(diffDays) > 1 ? 's' : ''} ago`;
-            }
           }
 
-      
           return {
             ...user,
             validity_from,
@@ -365,13 +357,11 @@ export const FixedUsersManagement = () => {
           };
         })
       );
-    
+
       const fixedUsers = enrichedUsers.filter(u => u.seat_type?.toLowerCase() === 'fixed');
-      console.log("updated code");
-    setUsers(usersData || []);
-    setUsers(fixedUsers);
-    
-    
+
+      setUsers(usersData || []);
+      setUserData(fixedUsers);
     } catch (error) {
       console.error('Error fetching fixed users:', error);
       toast({
