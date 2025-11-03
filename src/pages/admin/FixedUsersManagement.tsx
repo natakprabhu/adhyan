@@ -353,7 +353,7 @@ export const FixedUsersManagement = () => {
             }
           }
 
-
+      
           return {
             ...user,
             validity_from,
@@ -367,7 +367,7 @@ export const FixedUsersManagement = () => {
       );
     
       const fixedUsers = enrichedUsers.filter(u => u.seat_type?.toLowerCase() === 'fixed');
-     
+      console.log("updated code");
     setUsers(usersData || []);
     setUsers(fixedUsers);
     
