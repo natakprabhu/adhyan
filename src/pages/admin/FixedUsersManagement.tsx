@@ -365,11 +365,11 @@ export const FixedUsersManagement = () => {
           };
         })
       );
-
+    
       const fixedUsers = enrichedUsers.filter(u => u.seat_type?.toLowerCase() === 'fixed');
      
     setUsers(usersData || []);
-    //setUsers(filteredUsers);
+    setUsers(fixedUsers);
     
     
     } catch (error) {
