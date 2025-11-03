@@ -573,9 +573,9 @@ if (validity_to) {
      u.phone?.toLowerCase().includes(searchTerm.toLowerCase()))
     && (filterStatus === 'all' || 
        (filterStatus === 'active' && u.days_remaining && u.days_remaining > 0) ||
-       (filterStatus === 'expired' && u.days_remaining === 0))
+       (filterStatus === 'expired' && u.days_remaining <= 0))
   );
-
+  
   if (isLoading) return (
     <div className="flex items-center justify-center h-64">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
