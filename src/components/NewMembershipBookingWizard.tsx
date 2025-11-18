@@ -11,8 +11,6 @@ import { Crown, Users, MapPin, Clock, IndianRupee, AlertCircle, CheckCircle, Arr
 import { cn } from '@/lib/utils';
 import { Copy, Check } from 'lucide-react';
 
-
-
 interface NewMembershipBookingWizardProps {
   isOpen: boolean;
   onClose: () => void;
@@ -33,12 +31,15 @@ export default function NewMembershipBookingWizard({
   userProfile,
 }: NewMembershipBookingWizardProps) {
   const [step, setStep] = useState(1);
-  const [selectedCategory, setSelectedCategory] = useState<'fixed' | 'floating' | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<'fixed' | 'floating' | 'limited' | null>(null);
   const [selectedSeat, setSelectedSeat] = useState<number | null>(null);
   const [duration, setDuration] = useState(1);
   const [seatAvailability, setSeatAvailability] = useState<SeatAvailability | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  // New for Limited Hours
+  const [selectedShift, setSelectedShift] = useState<'morning' | 'evening' | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -47,45 +48,62 @@ export default function NewMembershipBookingWizard({
       setSelectedSeat(null);
       setDuration(1);
       setSeatAvailability(null);
+      setSelectedShift(null);
     }
   }, [isOpen]);
 
   const calculateMonthlyCost = () => {
-    return selectedCategory === 'fixed' ? 3500 : 2200;
+    if (selectedCategory === 'fixed') return 3500;
+    if (selectedCategory === 'floating') return 2200;
+    if (selectedCategory === 'limited') return 1200; // user provided price
+    return 0;
   };
 
   const calculateTotalCost = () => {
     return calculateMonthlyCost() * duration;
   };
 
-const checkSeatAvailability = async (seatNumber: number) => {
-  setIsLoading(true);
-  try {
-    const startDate = new Date();
-    const endDate = new Date();
-    endDate.setMonth(endDate.getMonth() + duration);
+  const checkSeatAvailability = async (seatNumber: number) => {
+    setIsLoading(true);
+    try {
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + duration);
 
-    const { data, error } = await supabase.rpc('check_seat_availability', {
-      seat_number_param: seatNumber,
-      start_date_param: startDate.toISOString().split('T')[0],
-      end_date_param: endDate.toISOString().split('T')[0],
-    });
+      const { data, error } = await supabase.rpc('check_seat_availability', {
+        seat_number_param: seatNumber,
+        start_date_param: startDate.toISOString().split('T')[0],
+        end_date_param: endDate.toISOString().split('T')[0],
+      });
 
-    if (error) throw error;
+      if (error) throw error;
 
-    
-    setSeatAvailability(data[0]);
-  } catch (error) {
-    console.error('Error checking seat availability:', error);
-    toast({
-      title: "Error",
-      description: "Failed to check seat availability",
-      variant: "destructive",
-    });
-  } finally {
-    setIsLoading(false);
-  }
-};
+      // rpc expected to return array with one object
+      setSeatAvailability(data && data[0] ? data[0] : null);
+    } catch (error) {
+      console.error('Error checking seat availability:', error);
+      toast({
+        title: "Error",
+        description: "Failed to check seat availability",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // auto-check availability when seat changes (quality of life, doesn't remove old features)
+  useEffect(() => {
+    if (selectedCategory === 'fixed' && selectedSeat) {
+      checkSeatAvailability(selectedSeat);
+    } else {
+      // reset availability when seat not applicable
+      setSeatAvailability(null);
+    }
+    // note: we intentionally do not include `duration` here to avoid excessive RPC calls,
+    // but if you want to re-check when duration changes, add `duration` to deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSeat, selectedCategory]);
 
   const [copied, setCopied] = useState(false);
 
@@ -95,151 +113,147 @@ const checkSeatAvailability = async (seatNumber: number) => {
   };
 
   const handleBooking = async () => {
-  if (!userProfile || !selectedCategory) return;
+    if (!userProfile || !selectedCategory) return;
 
-  setIsLoading(true);
-  try {
-    // Use the correct start date
-    let startDate: Date;
-    if (selectedCategory === 'fixed' && seatAvailability?.next_available_date) {
-      startDate = new Date(seatAvailability.next_available_date);
-    } else {
-      startDate = new Date(); // fallback for floating
+    // validation for limited shift
+    if (selectedCategory === 'limited' && !selectedShift) {
+      toast({
+        title: "Select Shift",
+        description: "Please choose a shift for the Limited Hours membership.",
+        variant: "destructive",
+      });
+      return;
     }
 
-    // Calculate end date based on duration
-    const endDate = new Date(startDate);
-    endDate.setMonth(endDate.getMonth() + duration);
-
-    let seatId = null;
-    if (selectedCategory === 'fixed' && selectedSeat) {
-      const { data: seatData } = await supabase
-        .from('seats')
-        .select('id')
-        .eq('seat_number', selectedSeat)
-        .single();
-      seatId = seatData?.id;
+    // validation for fixed seat availability
+    if (selectedCategory === 'fixed' && selectedSeat && seatAvailability && !seatAvailability.is_available) {
+      toast({
+        title: "Seat Unavailable",
+        description: "Selected seat is not available for the chosen duration.",
+        variant: "destructive",
+      });
+      return;
     }
 
-    const bookingData = {
-      user_id: userProfile.id,
-      seat_id: seatId,
-      seat_category: selectedCategory,
-      duration_months: duration,
-      monthly_cost: calculateMonthlyCost(),
-      membership_start_date: startDate.toISOString().split('T')[0],
-      membership_end_date: endDate.toISOString().split('T')[0],
-      start_time: startDate.toISOString(),
-      end_time: endDate.toISOString(),
-      type: 'membership',
-      status: 'pending',
-      payment_status: 'pending',
-      description: `${selectedCategory === 'fixed' ? 'Fixed' : 'Floating'} seat membership for ${duration} month${duration > 1 ? 's' : ''}`,
-    };
+    setIsLoading(true);
+    try {
+      // Use the correct start date
+      let startDate: Date;
+      if (selectedCategory === 'fixed' && seatAvailability?.next_available_date) {
+        startDate = new Date(seatAvailability.next_available_date);
+      } else {
+        startDate = new Date(); // fallback for floating and limited
+      }
 
-    const { error } = await supabase.from('bookings').insert(bookingData);
+      // Calculate end date based on duration
+      const endDate = new Date(startDate);
+      endDate.setMonth(endDate.getMonth() + duration);
 
-    if (error) throw error;
+      let seatId = null;
+      if (selectedCategory === 'fixed' && selectedSeat) {
+        const { data: seatData, error: seatError } = await supabase
+          .from('seats')
+          .select('id')
+          .eq('seat_number', selectedSeat)
+          .single();
+        if (seatError) throw seatError;
+        seatId = seatData?.id;
+      }
 
-    // Set a success message in the wizard itself (instead of toaster)
-    setStep(5); // move to confirmation step
+      const bookingData: any = {
+        user_id: userProfile.id,
+        seat_id: seatId,
+        seat_category: selectedCategory,
+        duration_months: duration,
+        monthly_cost: calculateMonthlyCost(),
+        membership_start_date: startDate.toISOString().split('T')[0],
+        membership_end_date: endDate.toISOString().split('T')[0],
+        start_time: startDate.toISOString(),
+        end_time: endDate.toISOString(),
+        type: 'membership',
+        status: 'pending',
+        payment_status: 'pending',
+        description: `${selectedCategory === 'fixed' ? 'Fixed' : selectedCategory === 'floating' ? 'Floating' : 'Limited Hours'} seat membership for ${duration} month${duration > 1 ? 's' : ''}`,
+      };
 
-  } catch (error) {
-    console.error('Error creating booking:', error);
-    toast({
-      title: "Error",
-      description: "Failed to submit booking request",
-      variant: "destructive",
-    });
-  } finally {
-    setIsLoading(false);
-  }
-};
+      // Add limited hours metadata
+      if (selectedCategory === 'limited') {
+        bookingData.slot = selectedShift;
+        //bookingData.limited_hours = 9;
+      }
 
+      const { error } = await supabase.from('bookings').insert(bookingData);
 
+      if (error) throw error;
 
+      // Set a success message in the wizard itself (instead of toaster)
+      setStep(5); // move to confirmation step
 
-// Step Navigation
-const nextStep = async () => {
-  if (step === 1 && selectedCategory === "fixed") {
-    setStep(2);
-  }else if (step === 1 && selectedCategory === "floating") {
-    console.log("step3")
-    setStep(3);
-  } else if (step === 2 && selectedCategory === "fixed") {
-    setStep(3); // seat selection done, go to duration
-  } else if (step === 3) {
-    setStep(4); // duration done, go to summary
-  } else if (step === 4) {
-    setStep(5); // fixed final success
-  }
-};
+      // optional callback
+      if (onBookingComplete) onBookingComplete();
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit booking request",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  // Step Navigation
+  const nextStep = async () => {
+    if (step === 1 && selectedCategory === "fixed") {
+      setStep(2); // seat selection
+    } else if (step === 1 && selectedCategory === "floating") {
+      setStep(3); // jump to duration (floating skips seat selection)
+    } else if (step === 1 && selectedCategory === "limited") {
+      setStep(2); // choose shift
+    } else if (step === 2 && selectedCategory === "fixed") {
+      setStep(3); // seat selected -> duration
+    } else if (step === 2 && selectedCategory === "limited") {
+      setStep(3); // shift selected -> duration
+    } else if (step === 3) {
+      setStep(4); // duration -> summary
+    } else if (step === 4) {
+      setStep(5); // submit / success
+    }
+  };
 
-const prevStep = () => {
-  if (step > 1) setStep(step - 1);
-};
+  const prevStep = () => {
+    if (step > 1) setStep(step - 1);
+  };
 
-  
   const [allSeats] = useState<number[]>(Array.from({ length: 50 }, (_, i) => i + 1));
   const [bookings, setBookings] = useState<any[]>([]);
   const [seatStatus, setSeatStatus] = useState<any[]>([]);
- 
-    useEffect(() => {
-      const fetchBookings = async () => {
-        const today = new Date().toISOString().split('T')[0];
-
-      const { data, error } = await supabase
-      .from('bookings')
-      .select(`
-        seat_id,
-        seats!inner(seat_number),
-        membership_start_date,
-        membership_end_date,
-        status
-      `)
-      .in('status', ['confirmed', 'approved']);
-
-
-        if (error) {
-          console.error("Error fetching bookings:", error);
-        } else {
-          
-          setBookings(data || []);
-        }
-      };
-
-      fetchBookings();
-    }, []);
 
   useEffect(() => {
-  const today = new Date();
+    const fetchBookings = async () => {
+      const { data, error } = await supabase
+        .from('bookings')
+        .select(`
+          seat_id,
+          seats!inner(seat_number),
+          membership_start_date,
+          membership_end_date,
+          status
+        `)
+        .in('status', ['confirmed', 'approved']);
 
-  const status = allSeats.map(seat => {
-    // Find booking for this seat
-    const booking = bookings.find(b => b.seats?.seat_number === seat);
-
-    if (!booking) {
-      return {
-        seatNumber: seat,
-        available: true,
-        nextAvailable: null,
-      };
-    }
-
-    const start = new Date(booking.membership_start_date);
-    const end = new Date(booking.membership_end_date);
-
-    return {
-      seatNumber: seat,
-      available: today < start || today > end, // true if not within booking period
-      nextAvailable: today >= start && today <= end ? booking.membership_end_date : null,
+      if (error) {
+        console.error("Error fetching bookings:", error);
+      } else {
+        setBookings(data || []);
+      }
     };
-  });
 
-    setSeatStatus(status);
-  }, [bookings, allSeats]);
+    fetchBookings();
+  }, []);
 
+  // Build seatStatus showing next available date if occupied
   useEffect(() => {
     const today = new Date();
 
@@ -274,28 +288,25 @@ const prevStep = () => {
       };
     });
 
-      setSeatStatus(status);
-    }, [bookings, allSeats]);
+    setSeatStatus(status);
+  }, [bookings, allSeats]);
 
-
-
-  // Calculate membership duration based on seat availability
-  let startDate: Date;
-  let endDate: Date;
+  // Calculate membership duration based on seat availability (used in summary)
+  let summaryStartDate: Date;
+  let summaryEndDate: Date;
 
   if (seatAvailability?.next_available_date) {
-    startDate = new Date(seatAvailability.next_available_date);
+    summaryStartDate = new Date(seatAvailability.next_available_date);
   } else {
-    startDate = new Date(); // fallback if no availability info
+    summaryStartDate = new Date(); // fallback if no availability info
   }
 
-  endDate = new Date(startDate);
-  endDate.setMonth(endDate.getMonth() + duration);
+  summaryEndDate = new Date(summaryStartDate);
+  summaryEndDate.setMonth(summaryEndDate.getMonth() + duration);
 
+  // Steps total (floating has 4, others use 5)
+  const totalSteps = selectedCategory === "floating" ? 4 : 5;
 
-// Steps total
-const totalSteps = selectedCategory === "floating" ? 4 : 5;
-  
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -314,7 +325,7 @@ const totalSteps = selectedCategory === "floating" ? 4 : 5;
                 className={cn(
                   "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
                   i <= step ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
-                  (selectedCategory === 'floating' && i === 3) && "hidden"
+                  (selectedCategory === 'floating' && i === 3) && "hidden" // keep previous hide behavior
                 )}
               >
                 {i}
@@ -326,13 +337,14 @@ const totalSteps = selectedCategory === "floating" ? 4 : 5;
           {step === 1 && (
             <div className="space-y-6">
               <h3 className="text-xl font-semibold text-center">Choose Your Membership</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Fixed Seat */}
                 <Card
                   className={cn(
                     "cursor-pointer transition-all hover:shadow-lg border-2 group",
                     selectedCategory === 'fixed' ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border-border hover:border-primary/50"
                   )}
-                  onClick={() => setSelectedCategory('fixed')}
+                  onClick={() => { setSelectedCategory('fixed'); setSelectedShift(null); }}
                 >
                   <CardHeader className="text-center">
                     <Crown className="h-16 w-16 mx-auto mb-4 text-primary" />
@@ -361,12 +373,13 @@ const totalSteps = selectedCategory === "floating" ? 4 : 5;
                   </CardContent>
                 </Card>
 
+                {/* Floating Seat */}
                 <Card
                   className={cn(
                     "cursor-pointer transition-all hover:shadow-lg border-2 group",
                     selectedCategory === 'floating' ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border-border hover:border-primary/50"
                   )}
-                  onClick={() => setSelectedCategory('floating')}
+                  onClick={() => { setSelectedCategory('floating'); setSelectedShift(null); }}
                 >
                   <CardHeader className="text-center">
                     <Users className="h-16 w-16 mx-auto mb-4 text-primary" />
@@ -394,45 +407,81 @@ const totalSteps = selectedCategory === "floating" ? 4 : 5;
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Limited Hours */}
+                <Card
+                  className={cn(
+                    "cursor-pointer transition-all hover:shadow-lg border-2 group",
+                    selectedCategory === 'limited' ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border-border hover:border-primary/50"
+                  )}
+                  onClick={() => { setSelectedCategory('limited'); setSelectedSeat(null); }}
+                >
+                  <CardHeader className="text-center">
+                    <Clock className="h-16 w-16 mx-auto mb-4 text-primary" />
+                    <CardTitle className="text-2xl">Limited Hours</CardTitle>
+                    <CardDescription className="text-base">9 hours per day — Morning / Evening Shift</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="text-center">
+                      <span className="text-4xl font-bold text-primary">₹1,200</span>
+                      <span className="text-lg text-muted-foreground">/month</span>
+                    </div>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                        <span>Morning: 6 AM – 3 PM</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                        <span>Evening: 3 PM – 12 AM</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <AlertCircle className="h-5 w-5 text-yellow-500 flex-shrink-0" />
+                        <span>No personal locker</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           )}
 
-          {/* Step 2: Seat Selection for Fixed OR Note for Floating */}
+          {/* Step 2: Seat Selection for Fixed OR Note for Floating OR Shift selection for Limited */}
           {step === 2 && selectedCategory === 'fixed' && (
-          <div className="space-y-6">
-            <h3 className="text-xl font-semibold text-center">Select Your Seat Number</h3>
-            <div className="max-w-md mx-auto space-y-4">
-              <div className="space-y-3">
-              <Label htmlFor="seat" className="text-base font-semibold">Seat Number (1-50)</Label>
-              <select
-    id="seat"
-    value={selectedSeat || ''}
-    onChange={(e) => setSelectedSeat(parseInt(e.target.value))}
-    className="text-center text-lg h-12 w-full border rounded-md px-2"
-  >
-    {seatStatus.map(s => (
-      <option key={s.seatNumber} value={s.seatNumber}>
-       {`Seat ${s.seatNumber} ${s.available ? '(Available Now)' : `(Available from ${s.nextAvailable})`}`}
-
-      </option>
-    ))}
-  </select>
-            
+            <div className="space-y-6">
+              <h3 className="text-xl font-semibold text-center">Select Your Seat Number</h3>
+              <div className="max-w-md mx-auto space-y-4">
+                <div className="space-y-3">
+                  <Label htmlFor="seat" className="text-base font-semibold">Seat Number (1-50)</Label>
+                  <select
+                    id="seat"
+                    value={selectedSeat || ''}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      setSelectedSeat(Number.isNaN(val) ? null : val);
+                    }}
+                    className="text-center text-lg h-12 w-full border rounded-md px-2"
+                  >
+                    <option value="">Select Seat</option>
+                    {seatStatus.map(s => (
+                      <option key={s.seatNumber} value={s.seatNumber}>
+                        {`Seat ${s.seatNumber} ${s.available ? '(Available Now)' : `(Available from ${s.nextAvailable})`}`}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              
-              <Card className="bg-primary/5 border-primary/20">
-                <CardContent className="pt-6">
-                  <div className="text-center space-y-2">
-                    <div className="text-2xl font-bold text-primary">₹3,500 per month</div>
-                    <p className="text-sm text-muted-foreground">Personal seat with locker included</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        )}
 
+                <Card className="bg-primary/5 border-primary/20">
+                  <CardContent className="pt-6">
+                    <div className="text-center space-y-2">
+                      <div className="text-2xl font-bold text-primary">₹3,500 per month</div>
+                      <p className="text-sm text-muted-foreground">Personal seat with locker included</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
 
           {step === 2 && selectedCategory === 'floating' && (
             <div className="space-y-6">
@@ -454,6 +503,40 @@ const totalSteps = selectedCategory === "floating" ? 4 : 5;
                     </div>
                   </CardContent>
                 </Card>
+              </div>
+            </div>
+          )}
+
+          {step === 2 && selectedCategory === 'limited' && (
+            <div className="space-y-6">
+              <h3 className="text-xl font-semibold text-center">Choose Your Shift</h3>
+              <div className="max-w-xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card
+                  className={cn(
+                    "cursor-pointer border-2 p-4",
+                    selectedShift === 'morning' ? "border-primary bg-primary/10" : "border-muted"
+                  )}
+                  onClick={() => setSelectedShift('morning')}
+                >
+                  <CardTitle className="text-center font-bold">Morning Shift</CardTitle>
+                  <CardDescription className="text-center">6 AM – 3 PM</CardDescription>
+                </Card>
+
+                <Card
+                  className={cn(
+                    "cursor-pointer border-2 p-4",
+                    selectedShift === 'evening' ? "border-primary bg-primary/10" : "border-muted"
+                  )}
+                  onClick={() => setSelectedShift('evening')}
+                >
+                  <CardTitle className="text-center font-bold">Evening Shift</CardTitle>
+                  <CardDescription className="text-center">3 PM – 12 AM</CardDescription>
+                </Card>
+              </div>
+
+              <div className="text-center">
+                <p className="text-lg font-semibold text-primary">₹1,200 per month</p>
+                <p className="text-sm text-muted-foreground">Access limited to selected shift only (9 hours / day)</p>
               </div>
             </div>
           )}
@@ -482,78 +565,86 @@ const totalSteps = selectedCategory === "floating" ? 4 : 5;
             </div>
           )}
 
+          {/* Step 4: Order Summary */}
+          {step === 4 && (
+            <div className="space-y-6">
+              <h3 className="text-xl font-semibold text-center">Order Summary</h3>
+              <div className="max-w-lg mx-auto">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-center">Booking Details</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {(() => {
+                      let startDate: Date;
+                      let endDate: Date;
 
-{/* Step 4: Order Summary */}
-{step === 4 && (
-  <div className="space-y-6">
-    <h3 className="text-xl font-semibold text-center">Order Summary</h3>
-    <div className="max-w-lg mx-auto">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-center">Booking Details</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Calculate membership start and end dates */}
-          {(() => {
-            let startDate: Date;
-            let endDate: Date;
+                      if (selectedCategory === 'fixed' && seatAvailability?.next_available_date) {
+                        startDate = new Date(seatAvailability.next_available_date);
+                      } else {
+                        startDate = new Date(); // fallback for floating and limited
+                      }
 
-            if (selectedCategory === 'fixed' && seatAvailability?.next_available_date) {
-              startDate = new Date(seatAvailability.next_available_date);
-            } else {
-              startDate = new Date(); // fallback for floating
-            }
+                      endDate = new Date(startDate);
+                      endDate.setMonth(endDate.getMonth() + duration);
 
-            endDate = new Date(startDate);
-            endDate.setMonth(endDate.getMonth() + duration);
+                      return (
+                        <>
+                          <div className="grid grid-cols-1 gap-4">
+                            <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                              <span className="font-medium">Seat Type:</span>
+                              <Badge variant="default" className="capitalize">
+                                {selectedCategory} Seat
+                              </Badge>
+                            </div>
 
-            return (
-              <>
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                    <span className="font-medium">Seat Type:</span>
-                    <Badge variant="default" className="capitalize">
-                      {selectedCategory} Seat
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                    <span className="font-medium">Seat Number:</span>
-                    <span className="font-bold">
-                      {selectedCategory === 'fixed' ? `Seat ${selectedSeat}` : 'Any Available Seat'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                    <span className="font-medium">Cost per Month:</span>
-                    <span className="font-bold text-primary">₹{calculateMonthlyCost().toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                    <span className="font-medium">Duration:</span>
-                    <span className="font-bold">{duration} Month{duration > 1 ? 's' : ''}</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                    <span className="font-medium">Membership Duration:</span>
-                    <span className="font-bold">
-                      {startDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                      {" "}to{" "}
-                      {endDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </span>
-                  </div>
-                </div>
-                <div className="border-t pt-4">
-                  <div className="flex justify-between items-center text-xl">
-                    <span className="font-bold">Total Cost:</span>
-                    <span className="font-bold text-primary text-2xl">₹{calculateTotalCost().toLocaleString()}</span>
-                  </div>
-                </div>
-              </>
-            );
-          })()}
-        </CardContent>
-      </Card>
-    </div>
-  </div>
-)}
+                            <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                              <span className="font-medium">Seat Number:</span>
+                              <span className="font-bold">
+                                {selectedCategory === 'fixed' ? `Seat ${selectedSeat}` : 'Any Available Seat'}
+                              </span>
+                            </div>
 
+                            {selectedCategory === 'limited' && (
+                              <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                                <span className="font-medium">Shift:</span>
+                                <span className="font-bold capitalize">{selectedShift ? `${selectedShift} Shift` : 'Not selected'}</span>
+                              </div>
+                            )}
+
+                            <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                              <span className="font-medium">Cost per Month:</span>
+                              <span className="font-bold text-primary">₹{calculateMonthlyCost().toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                              <span className="font-medium">Duration:</span>
+                              <span className="font-bold">{duration} Month{duration > 1 ? 's' : ''}</span>
+                            </div>
+                            <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                              <span className="font-medium">Membership Duration:</span>
+                              <span className="font-bold">
+                                {startDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                {" "}to{" "}
+                                {endDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="border-t pt-4">
+                            <div className="flex justify-between items-center text-xl">
+                              <span className="font-bold">Total Cost:</span>
+                              <span className="font-bold text-primary text-2xl">₹{calculateTotalCost().toLocaleString()}</span>
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
+
+          {/* Step 5: Success */}
           {step === 5 && (
             <div className="space-y-6 text-center">
               <CheckCircle className="h-20 w-20 mx-auto text-green-500" />
@@ -564,7 +655,7 @@ const totalSteps = selectedCategory === "floating" ? 4 : 5;
                 Thank you!
               </p>
               <div className="flex justify-center mt-4">
-              <Button
+                <Button
                   variant="outline"
                   className="flex items-center gap-2"
                   onClick={() => {
@@ -576,16 +667,15 @@ const totalSteps = selectedCategory === "floating" ? 4 : 5;
                   {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                   Copy UPI Number
                 </Button>
-              </div>    
+              </div>
             </div>
           )}
 
-
           {/* Navigation Buttons */}
           <div className="flex justify-between pt-6">
-            <Button 
-              variant="outline" 
-              onClick={prevStep} 
+            <Button
+              variant="outline"
+              onClick={prevStep}
               disabled={step === 1 || step === 5}
               className="flex items-center gap-2"
             >
@@ -596,12 +686,16 @@ const totalSteps = selectedCategory === "floating" ? 4 : 5;
               <Button variant="outline" onClick={onClose} disabled={step === 5 && isLoading}>
                 {step === 5 ? 'Close' : 'Cancel'}
               </Button>
+
               {step < 4 ? (
-                <Button 
-                  onClick={nextStep} 
+                <Button
+                  onClick={nextStep}
                   disabled={
                     (step === 1 && !selectedCategory) ||
+                    // fixed seat must have seat selected and available
                     (step === 2 && selectedCategory === 'fixed' && (!selectedSeat || (seatAvailability && !seatAvailability.is_available))) ||
+                    // limited must have shift
+                    (step === 2 && selectedCategory === 'limited' && !selectedShift) ||
                     isLoading
                   }
                   className="flex items-center gap-2"

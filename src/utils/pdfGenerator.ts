@@ -1,166 +1,202 @@
 import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
 
-// ----------------------------
-// Types
-// ----------------------------
+/* ------------------------------------------------------
+   Types
+------------------------------------------------------ */
 interface InvoiceData {
   bookingId: string;
   userName: string;
   userEmail: string;
-  amount: number; // Final paid amount
-  seatNumber: number;
+  userPhone: string;
+  amount: number;
+  seatNumber: number | string;
   bookingType: string;
   slot?: string;
   startDate: string;
   endDate: string;
-  transactionId: string;
   paymentDate: string;
   status: string;
 }
 
-// ----------------------------
-// Utils
-// ----------------------------
-const formatDate = (date: string) => {
-  return new Date(date).toLocaleDateString("en-GB", {
+const formatDate = (date: string) =>
+  new Date(date).toLocaleDateString("en-GB", {
     day: "2-digit",
     month: "short",
     year: "numeric",
   });
+
+/* ------------------------------------------------------
+   Generate Custom Invoice Number
+------------------------------------------------------ */
+const generateInvoiceNumber = (phone: string) => {
+  //const rand = Math.floor(Math.random() * (999 - 500 + 1)) + 500;
+  const year = new Date().getFullYear();
+  const month = ("0" + (new Date().getMonth() + 1)).slice(-2);
+  const last4 = phone?.slice(-4) ?? "0000";
+
+  return `adhyan/${year}/${month}/${last4}`;
 };
 
-// ----------------------------
-// Generate PDF
-// ----------------------------
+/* ------------------------------------------------------
+   Main PDF Generator (Full Beautified)
+------------------------------------------------------ */
 const generateInvoicePDF = (
-  invoiceData: InvoiceData,
+  invoice: InvoiceData,
   originalPrice: number,
   discountPercentage?: number
-): void => {
-  const pdf = new jsPDF();
+) => {
+  const pdf = new jsPDF({ unit: "pt", format: "a4" });
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const margin = 40;
+  let y = 40;
 
-  // Colors
-  const primaryColor = [33, 37, 41]; // dark gray
-  const accentColor = [0, 102, 204]; // blue
+  // create watermark invoice number
+  const invoiceNumber = generateInvoiceNumber(invoice.userPhone);
 
-  // Logo
+  /* ------------------------------------------------------
+       Header + Logo
+  ------------------------------------------------------ */
   const logo = "/lovable-uploads/082b41c8-f84f-44f0-9084-137a3e9cbfe2.png";
-  pdf.addImage(logo, "PNG", 150, 15, 40, 20);
+  pdf.addImage(logo, "PNG", pageWidth - 140, y, 100, 40);
 
-  // Title
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(22);
-  pdf.setTextColor(...primaryColor);
-  pdf.text("INVOICE", 20, 30);
+  pdf.setFontSize(24);
+  pdf.text("TAX INVOICE", margin, y + 25);
 
-  // Line separator
-  pdf.setDrawColor(...accentColor);
-  pdf.setLineWidth(0.5);
-  pdf.line(20, 35, 190, 35);
+  y += 60;
 
-  // Company Info
+  /* ------------------------------------------------------
+       Company Details
+  ------------------------------------------------------ */
   pdf.setFontSize(11);
   pdf.setFont("helvetica", "bold");
-  pdf.setTextColor(80, 80, 80);
-  pdf.text("Adhyan Library", 20, 45);
-  pdf.text("60/19, Ground Floor,", 20, 51);
-  pdf.text("Old Rajinder Nagar, Delhi - 110060", 20, 57);
-  pdf.text("Phone: 8076514304", 20, 63);
+  pdf.text("Adhyan Library", margin, y);
 
-  pdf.setTextColor(...primaryColor);
-  pdf.text("Invoice #: " + invoiceData.transactionId, 20, 75);
-  pdf.text("Date: " + formatDate(invoiceData.paymentDate), 20, 81);
+  pdf.setFont("helvetica", "normal");
+  pdf.text("60/19, Ground Floor,", margin, y + 15);
+  pdf.text("Old Rajinder Nagar, Delhi - 110060", margin, y + 30);
+  pdf.text("Phone: 8076514304", margin, y + 45);
 
-  // Customer Info
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(13);
-  pdf.text("Bill To:", 20, 95);
+  pdf.text(`Invoice No: ${invoiceNumber}`, pageWidth - 220, y);
+  pdf.text(`Invoice Date: ${formatDate(invoice.paymentDate)}`, pageWidth - 220, y + 20);
+
+  y += 80;
+
+  /* ------------------------------------------------------
+       Bill To Box
+  ------------------------------------------------------ */
+  pdf.setFillColor(242, 242, 242);
+  pdf.rect(margin, y - 20, pageWidth - margin * 2, 70, "F");
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(14);
+  pdf.text("Bill To:", margin + 10, y);
 
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(12);
-  pdf.setTextColor(...primaryColor);
-  pdf.text(invoiceData.userName, 20, 105);
-   // Booking Details box
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(13);
-  pdf.setTextColor(...accentColor);
-  pdf.text("Booking Details", 20, 130);
+  pdf.text(invoice.userName, margin + 10, y + 22);
+  pdf.text(invoice.userPhone, margin + 10, y + 40);
 
-  pdf.setDrawColor(200, 200, 200);
-  pdf.rect(18, 135, 174, 40); // border box
+  y += 90;
 
-  pdf.setFontSize(11);
-  pdf.setFont("helvetica", "normal");
-  pdf.setTextColor(...primaryColor);
-  let y = 145;
-  pdf.text(`Seat Number: ${invoiceData.seatNumber}`, 25, y);
-  pdf.text(`Booking Type: ${invoiceData.bookingType}`, 100, y);
+  /* ------------------------------------------------------
+       Seat Type Formatter
+  ------------------------------------------------------ */
+  const seatTypeFormatted =
+    invoice.bookingType === "limited"
+      ? `Limited Hours – ${
+          invoice.slot === "morning"
+            ? "Morning (6 AM – 3 PM)"
+            : "Evening (3 PM – 12 AM)"
+        }`
+      : invoice.bookingType === "floating"
+      ? "Floating Seat"
+      : "Fixed Seat";
 
-  y += 8;
-  if (invoiceData.slot) {
-    pdf.text(`Slot: ${invoiceData.slot}`, 25, y);
+  /* ------------------------------------------------------
+       Booking Details Table
+  ------------------------------------------------------ */
+  autoTable(pdf, {
+    startY: y,
+    headStyles: { fillColor: [0, 102, 204], textColor: 255 },
+    bodyStyles: { fontSize: 11 },
+    margin: { left: margin, right: margin },
+    head: [["Details", "Information"]],
+    body: [
+      ["Seat Type", `${invoice.bookingType}`],
+      ["Seat Number", `${invoice.seatNumber}`],
+      ["Validity", `${formatDate(invoice.startDate)} to ${formatDate(invoice.endDate)}`],
+      ["Payment Status", invoice.status.toUpperCase()],
+    ],
+  });
+
+  y = pdf.lastAutoTable.finalY + 40;
+
+  /* ------------------------------------------------------
+       Payment Breakdown Table
+  ------------------------------------------------------ */
+  const paymentRows: any[] = [];
+
+  if (invoice.amount < originalPrice) {
+    paymentRows.push(["Original Price", `Rs.${originalPrice}`]);
+    paymentRows.push(["Discount Applied", `${discountPercentage}%`]);
   }
+
+  paymentRows.push(["Final Amount Paid", `Rs. ${invoice.amount}`]);
+  paymentRows.push(["Payment Date", formatDate(invoice.paymentDate)]);
+
+  autoTable(pdf, {
+    startY: y,
+    headStyles: { fillColor: [33, 37, 41], textColor: 255 },
+    bodyStyles: { fontSize: 11 },
+    margin: { left: margin, right: margin },
+    head: [["Payment Info", ""]],
+    body: paymentRows,
+  });
+
+  y = pdf.lastAutoTable.finalY + 40;
+
+  /* ------------------------------------------------------
+       Footer
+  ------------------------------------------------------ */
+  pdf.setFontSize(14);
+  pdf.setTextColor(70);
   pdf.text(
-    `Period: ${formatDate(invoiceData.startDate)} to ${formatDate(invoiceData.endDate)}`,
-    100,
+    "Thank you for choosing Adhyan Library. We wish you success in your learning journey.",
+    margin,
     y
   );
+  pdf.setFontSize(9);
+  pdf.text(
+    "This invoice was generated automatically and is valid without a signature.",
+    margin,
+    y + 15
+  );
 
-  y += 8;
-  pdf.text(`Status: ${invoiceData.status}`, 25, y);
+  /* ------------------------------------------------------
+       WATERMARK: PAID
+  ------------------------------------------------------ */
+  // pdf.setFont("helvetica", "bold");
+  // pdf.setFontSize(100);
+  // pdf.setTextColor(200, 0, 0, 0.12); // light red, transparent
 
-  // Payment Info box
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(13);
-  pdf.setTextColor(...accentColor);
-  pdf.text("Payment Information", 20, 190);
+  // pdf.saveGraphicsState();
+  // pdf.rotate(-30, { origin: [pageWidth / 2, 400] });
+  // pdf.text("PAID", pageWidth / 2 - 150, 400, { align: "center" });
+  // pdf.restoreGraphicsState();
 
-  pdf.setDrawColor(200, 200, 200);
-  pdf.rect(18, 195, 174, 40);
-
-  pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(12);
-  pdf.setTextColor(...primaryColor);
-
-  y = 205;
-
-  if (invoiceData.amount < originalPrice) {
-    // Original Price strike
-    pdf.text(`Original Price: ₹${originalPrice}`, 25, y);
-    pdf.setDrawColor(200, 0, 0);
-    pdf.line(24, y - 2, 70, y - 2);
-
-    y += 8;
-    pdf.setTextColor(200, 0, 0);
-    pdf.text(`Discounted Price: ₹${invoiceData.amount}`, 25, y);
-
-    if (discountPercentage) {
-      y += 8;
-      pdf.text(`You saved ${discountPercentage}%`, 25, y);
-    }
-    pdf.setTextColor(...primaryColor);
-  } else {
-    pdf.text(`Amount Paid: Rs. ${invoiceData.amount}`, 25, y);
-  }
-
-  y += 8;
-  pdf.text(`Payment Date: ${formatDate(invoiceData.paymentDate)}`, 25, y);
-
-  // Footer
-  pdf.setFont("helvetica", "italic");
-  pdf.setFontSize(10);
-  pdf.setTextColor(120, 120, 120);
-  pdf.text("Thank you for your business!", 20, 280);
-  pdf.text("This is a computer-generated invoice.", 20, 286);
-
-  // Save
-  pdf.save(`invoice-${invoiceData.transactionId}.pdf`);
+  /* ------------------------------------------------------
+       Save File
+  ------------------------------------------------------ */
+  pdf.save(`invoice-${invoiceNumber}.pdf`);
 };
 
-// ----------------------------
-// Fetch Booking & Generate Invoice
-// ----------------------------
+/* ------------------------------------------------------
+   Fetch Booking → Generate PDF
+------------------------------------------------------ */
 const fetchBookingAndGenerateInvoice = async (invoiceData: InvoiceData) => {
   const { data: booking, error } = await supabase
     .from("bookings")
@@ -168,8 +204,8 @@ const fetchBookingAndGenerateInvoice = async (invoiceData: InvoiceData) => {
     .eq("id", invoiceData.bookingId)
     .single();
 
-  if (error || !booking) {
-    console.error("Error fetching booking:", error?.message);
+  if (error) {
+    console.error("Error fetching booking:", error);
     return;
   }
 
@@ -183,7 +219,4 @@ const fetchBookingAndGenerateInvoice = async (invoiceData: InvoiceData) => {
   generateInvoicePDF(invoiceData, originalPrice, discountPercentage);
 };
 
-// ----------------------------
-// Exports
-// ----------------------------
 export { generateInvoicePDF, fetchBookingAndGenerateInvoice };

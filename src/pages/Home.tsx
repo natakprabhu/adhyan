@@ -252,77 +252,105 @@ export default function Home() {
   <div className="space-y-4">
     <h2 className="text-xl font-bold">Recent Bookings</h2>
     <div className="space-y-3">
-      {recentBookings.map((booking) => (
-        <Card key={booking.id} className="w-full">
-          <CardContent className="pt-4">
-            <div className="flex justify-between items-start">
-              {/* Booking Info */}
-              <div className="space-y-2">
-                {/* Seat Details */}
-                <div className="font-medium text-base">
-                  {booking.seat_category?.toLowerCase() === "floating"
-                    ? "Any Available Seat"
-                    : `Seat ${booking.seat_number || "-"}`}
-                </div>
+      {recentBookings.map((booking) => {
+        // Determine seat/shift label
+        const seatLabel =
+          booking.seat_category === "floating"
+            ? "Any Available Seat"
+            : booking.seat_category === "limited"
+            ? booking.slot === "morning"
+              ? "Morning Shift (6 AM – 3 PM)"
+              : "Evening Shift (3 PM – 12 AM)"
+            : `Seat ${booking.seat_number || "-"}`;
 
-                {/* Category + Duration + Slot */}
-                <div className="flex flex-wrap gap-2">
+        // Determine category badge
+        const categoryBadge =
+          booking.seat_category === "fixed"
+            ? { text: "Fixed Seat", color: "bg-blue-600" }
+            : booking.seat_category === "floating"
+            ? { text: "Floating Seat", color: "bg-yellow-600" }
+            : { text: "Limited Hours", color: "bg-purple-600" };
+
+        // Icons for categories
+        const categoryIcon =
+          booking.seat_category === "fixed" ? (
+            <Crown className="h-4 w-4 mr-1" />
+          ) : booking.seat_category === "floating" ? (
+            <Users className="h-4 w-4 mr-1" />
+          ) : (
+            <Clock className="h-4 w-4 mr-1" />
+          );
+
+        return (
+          <Card key={booking.id} className="w-full shadow-sm">
+            <CardContent className="pt-4">
+              <div className="flex justify-between items-start">
+                {/* Booking Info */}
+                <div className="space-y-2">
+                  {/* Seat / Shift Label */}
+                  <div className="font-semibold text-lg">{seatLabel}</div>
+
+                  {/* Category Badge */}
                   <Badge
-                    className={`px-3 py-1 text-sm font-semibold rounded-full ${
-                      booking.seat_category?.toLowerCase() === "floating"
-                        ? "bg-yellow-500 text-white"
-                        : "bg-blue-500 text-white"
-                    }`}
+                    className={`px-3 py-1 text-sm font-semibold flex items-center gap-1 text-white rounded-full ${categoryBadge.color}`}
                   >
-                    {booking.seat_category?.toLowerCase() === "floating"
-                      ? "Floating Seat"
-                      : "Fixed Seat"}
+                    {categoryIcon}
+                    {categoryBadge.text}
                   </Badge>
-            
+
+                  {/* Dates */}
+                  <div className="text-sm text-muted-foreground">
+                    {format(new Date(booking.start_time), "MMM d, yyyy")} –{" "}
+                    {format(new Date(booking.end_time), "MMM d, yyyy")}
+                  </div>
+
+                  {/* Created At */}
+                  <div className="text-xs text-muted-foreground">
+                    Booked on {format(new Date(booking.created_at), "MMM d, yyyy")}
+                  </div>
                 </div>
 
-                {/* Dates */}
-                <div className="text-sm text-muted-foreground">
-                  {format(new Date(booking.start_time), "MMM d, yyyy")} –{" "}
-                  {format(new Date(booking.end_time), "MMM d, yyyy")}
-                </div>
+                {/* Status + Payment */}
+                <div className="flex flex-col gap-2 items-end">
+                  <Badge
+                    variant={
+                      booking.status === "confirmed"
+                        ? "secondary"
+                        : booking.status === "pending"
+                        ? "destructive"
+                        : "warning"
+                    }
+                  >
+                    {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                  </Badge>
 
-                {/* Created At */}
-                <div className="text-xs text-muted-foreground">
-                  Booked on{" "}
-                  {format(new Date(booking.created_at), "MMM d, yyyy")}
+                  {/* Payment Status */}
+                  <Badge
+                    className="text-xs"
+                    variant={
+                      booking.payment_status === "paid"
+                        ? "secondary"
+                        : booking.payment_status === "pending"
+                        ? "outline"
+                        : "destructive"
+                    }
+                  >
+                    {booking.payment_status === "paid"
+                      ? "Paid"
+                      : booking.payment_status === "pending"
+                      ? "Payment Pending"
+                      : "Payment Failed"}
+                  </Badge>
                 </div>
               </div>
-
-              {/* Status + Payment */}
-              <div className="flex flex-col gap-2 items-end">
-                <Badge
-                  variant={
-                    booking.status === "confirmed"
-                      ? "secondary"
-                      : booking.status === "pending"
-                      ? "destructive"
-                      : "warning"
-                  }
-                >
-                  {booking.status.charAt(0).toUpperCase() +
-                    booking.status.slice(1)}
-                </Badge>
-                <Badge variant="outline" className="text-xs">
-                  {booking.payment_status === "paid"
-                    ? "Paid"
-                    : booking.payment_status === "pending"
-                    ? "Payment Pending"
-                    : "Payment Failed"}
-                </Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   </div>
 )}
+
 
 
       {showBookingWizard && (

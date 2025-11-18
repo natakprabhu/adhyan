@@ -1,5 +1,8 @@
+// -------------------------------------------------------------
+// PROFILE PAGE — FULLY UPDATED FOR LIMITED HOURS MEMBERSHIP
+// -------------------------------------------------------------
 import { useState, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,27 +12,38 @@ import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { User, Phone, Mail, MessageCircle, Calendar, Clock, MapPin, Edit, Download, LogOut, Key } from 'lucide-react';
+
+import {
+  User,
+  Phone,
+  MapPin,
+  Edit,
+  Download,
+  LogOut,
+  Calendar,
+  Clock
+} from 'lucide-react';
+
 import { generateInvoicePDF } from '@/utils/pdfGenerator';
 
+// -------------------------------------------------------------
+// Types
+// -------------------------------------------------------------
 interface UserProfile {
   id: string;
   name: string;
   phone: string;
   email: string;
-  telegram_id?: string;
   approved: boolean;
 }
 
 interface Booking {
   id: string;
-  type: string;
+  seat_category: 'fixed' | 'floating' | 'limited';
   slot?: string;
   start_time: string;
   end_time: string;
-  seats: {
-    seat_number: number;
-  };
+  seats: { seat_number: number } | null;
 }
 
 interface Transaction {
@@ -43,8 +57,70 @@ interface Transaction {
   booking?: Booking;
 }
 
+// -------------------------------------------------------------
+// Helper Functions
+// -------------------------------------------------------------
+const formatDateTime = (dateString: string) => {
+  if (!dateString) return "-";
+  return new Date(dateString).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  });
+};
+
+const limitedShiftLabel = (slot?: string) => {
+  if (!slot) return '';
+  if (slot === "morning") return "Morning Shift (6 AM – 3 PM)";
+  if (slot === "evening") return "Evening Shift (3 PM – 12 AM)";
+  return slot;
+};
+const bookingSeatLabel = (b) => {
+  // Fixed Seat → must show actual seat number
+  if (b.seat_category === "fixed") {
+    return b.seats?.seat_number
+      ? `Seat ${b.seats.seat_number}`
+      : "Seat Not Assigned";
+  }
+
+  // Floating → always any seat
+  if (b.seat_category === "floating" || "limited") {
+    return "Any Available Seat";
+  }
+
+};
+
+
+const bookingCategoryLabel = (b) => {
+  if (b.seat_category === "limited") {
+    return b.slot === "morning"
+      ? "Limited Hours – Morning Shift (6 AM - 3 PM)"
+      : "Limited Hours – Evening Shift (3 PM - 12 AM)";
+  }
+
+  if (b.seat_category === "floating") return "Floating Seat";
+
+  return "Fixed Seat";
+};
+
+const getStatusColor = (status: string) => {
+  const s = status.toLowerCase().trim();
+  if (s === 'paid' || s === 'success' || s === 'completed')
+    return 'bg-green-100 text-green-800';
+  if (s === 'pending')
+    return 'bg-yellow-100 text-yellow-800';
+  if (s === 'failed')
+    return 'bg-red-100 text-red-800';
+  return 'bg-gray-100 text-gray-800';
+};
+
+// -------------------------------------------------------------
+// MAIN COMPONENT
+// -------------------------------------------------------------
 export default function Profile() {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [currentSeat, setCurrentSeat] = useState<any>(null);
@@ -52,396 +128,343 @@ export default function Profile() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+
+  // -------------------------------------------------------------
+  // Fetch all profile data
+  // -------------------------------------------------------------
   useEffect(() => {
     if (user) fetchProfileData();
   }, [user]);
 
   const fetchProfileData = async () => {
     try {
-      // Fetch user profile
-      const { data: profile, error: profileError } = await supabase
+      // User Profile
+      const { data: profile } = await supabase
         .from('users')
         .select('*')
         .eq('auth_user_id', user?.id)
         .single();
 
-      if (profileError) throw profileError;
       setUserProfile(profile);
 
-      // Fetch transactions
-      const { data: transactionsData, error: txError } = await supabase
+      // Transactions
+      const { data: tx } = await supabase
         .from('transactions')
         .select('*')
         .eq('user_id', profile.id)
         .order('created_at', { ascending: false });
 
-      if (txError) throw txError;
+      // Fetch all corresponding bookings
+      const bookingIds = tx.filter((t: any) => t.booking_id).map((t: any) => t.booking_id);
+      let bookingMap: any = {};
 
-      let enrichedTransactions: Transaction[] = [];
+      if (bookingIds.length > 0) {
+        const { data: bookings } = await supabase
+          .from('bookings')
+          .select(`*, seats (seat_number)`)
+          .in('id', bookingIds);
 
-      if (transactionsData && transactionsData.length > 0) {
-        const bookingIds = transactionsData
-          .filter(tx => tx.booking_id)
-          .map(tx => tx.booking_id);
-
-        let bookingsMap: Record<string, Booking> = {};
-        if (bookingIds.length > 0) {
-          const { data: bookingsData, error: bkError } = await supabase
-            .from('bookings')
-            .select(`*, seats (seat_number)`)
-            .in('id', bookingIds);
-
-          if (bkError) throw bkError;
-
-          bookingsData?.forEach(bk => {
-            bookingsMap[bk.id] = bk;
-          });
-        }
-
-        enrichedTransactions = transactionsData.map(tx => ({
-          ...tx,
-          booking: tx.booking_id ? bookingsMap[tx.booking_id] : undefined
-        }));
+        bookings?.forEach((b) => (bookingMap[b.id] = b));
       }
 
-      setTransactions(enrichedTransactions);
+      const enriched = tx.map((t: any) => ({
+        ...t,
+        booking: t.booking_id ? bookingMap[t.booking_id] : undefined
+      }));
 
-      // Fetch current active seat
-      const now = new Date().toISOString();
-      const { data: currentBooking } = await supabase
-        .from('bookings')
-        .select(`
-          *,
-          seats (seat_number)
-        `)
-        .eq('user_id', profile.id)
-        .eq('status', 'confirmed')
-        .eq('payment_status', 'paid')
-        .lte('start_time', now)
-        .gte('end_time', now)
+      setTransactions(enriched);
+
+      // Current Active Booking
+      const now = new Date().toISOString().split("T")[0];
+      const { data: active } = await supabase
+        .from("bookings")
+        .select(`*, seats(seat_number)`)
+        .eq("user_id", profile.id)
+        .eq("status", "confirmed")
+        .eq("payment_status", "paid")
+        .lte("membership_start_date", now)
+        .gte("membership_end_date", now)
+        .order("membership_end_date", { ascending: false })
+        .limit(1)
         .single();
 
-      if (currentBooking) {
-        const daysRemaining = currentBooking.end_time
-          ? Math.ceil((new Date(currentBooking.end_time).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-          : null;
+      if (active) {
+        const daysRemaining =
+          Math.ceil(
+            (new Date(active.membership_end_date).getTime() - new Date().getTime()) /
+            (1000 * 60 * 60 * 24)
+          );
 
         setCurrentSeat({
-          seat_number: currentBooking.seats?.seat_number || 0,
-          type: currentBooking.type,
-          validity_to: currentBooking.end_time,
-          days_remaining: daysRemaining,
-          is_expired: daysRemaining !== null && daysRemaining < 0
+          label: bookingCategoryLabel(active),
+          seat: bookingSeatLabel(active),
+          validity_to: active.membership_end_date,
+          days_remaining: Math.max(daysRemaining, 0)
         });
       }
-    } catch (error) {
-      console.error('Error fetching profile data:', error);
+
+    } catch (e) {
+      console.error(e);
     } finally {
       setIsLoading(false);
     }
   };
 
-  
-const handleUpdateProfile = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-  setIsSaving(true);
 
-  const formData = new FormData(e.currentTarget);
-  const name = formData.get('name') as string;
-  const phone = formData.get('phone') as string;
-  const newPassword = formData.get('password') as string;
-  const confirmPassword = formData.get('confirmPassword') as string;
+  // -------------------------------------------------------------
+  // Invoice Download Handler
+  // -------------------------------------------------------------
+  const handleDownloadInvoice = (tx: Transaction) => {
+    const b = tx.booking;
+    if (!b || !userProfile) return;
 
-  if (newPassword && newPassword !== confirmPassword) {
-    toast({
-      title: 'Error',
-      description: 'Passwords do not match!',
-      variant: 'destructive',
-    });
-    setIsSaving(false);
-    return;
-  }
+    const invoiceData = {
+      bookingId: tx.booking_id || tx.id,
+      userName: userProfile.name,
+      userPhone: userProfile.phone,
+      amount: tx.amount,
+      seatNumber: bookingSeatLabel(b),
+      bookingType: bookingCategoryLabel(b),
+      slot: b.slot || '',
+      startDate: formatDateTime(b.start_time),
+      endDate: formatDateTime(b.end_time),
+      transactionId: tx.id,
+      paymentDate: tx.created_at,
+      status: tx.status,
+      adminNotes: tx.admin_notes || ""
+    };
 
-  try {
-    // Update name and phone in your users table
-    const { error: profileError } = await supabase
-      .from('users')
-      .update({ name, phone })
-      .eq('auth_user_id', userProfile?.auth_user_id);
+    generateInvoicePDF(invoiceData);
 
-    if (profileError) throw profileError;
-
-    // Update password if provided
-    if (newPassword) {
-      const { error: pwError } = await supabase.auth.updateUser({
-        password: newPassword
-      });
-      if (pwError) throw pwError;
-    }
-
-    // Update local state
-    setUserProfile(prev => prev ? { ...prev, name, phone } : null);
-    setIsEditing(false);
-
-    toast({ title: 'Success', description: 'Profile updated successfully.' });
-  } catch (error: any) {
-    console.error('Error updating profile:', error);
-    toast({
-      title: 'Error',
-      description: error.message || 'Failed to update profile',
-      variant: 'destructive'
-    });
-  } finally {
-    setIsSaving(false);
-  }
-};
-
-  // const handleSignOut = async () => {
-  //   await supabase.auth.signOut();
-  // };
+    toast({ title: "Invoice Downloaded", description: "Your invoice has been downloaded." });
+  };
 
 
-  const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast({
-        title: "Sign Out Failed",
-        description: error.message || "An unknown error occurred",
-        variant: "destructive",
-      });
+  // -------------------------------------------------------------
+  // Update Profile Handler
+  // -------------------------------------------------------------
+  const handleUpdateProfile = async (e: any) => {
+    e.preventDefault();
+    setIsSaving(true);
+
+    const formData = new FormData(e.currentTarget);
+
+    const name = formData.get("name") as string;
+    const phone = formData.get("phone") as string;
+
+    if (password && password !== confirmPassword) {
+      toast({ title: "Error", description: "Passwords do not match!", variant: "destructive" });
+      setIsSaving(false);
       return;
     }
 
-    toast({
-      title: "Signed Out",
-      description: "You have been signed out successfully.",
-    });
+    try {
+      await supabase
+        .from("users")
+        .update({ name, phone })
+        .eq("auth_user_id", userProfile?.auth_user_id);
 
+      if (password) {
+        await supabase.auth.updateUser({ password });
+      }
+
+      setUserProfile((p) => p ? { ...p, name, phone } : p);
+      setIsEditing(false);
+
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+
+  // -------------------------------------------------------------
+  // Sign Out
+  // -------------------------------------------------------------
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
     navigate("/auth", { replace: true });
   };
 
 
-  const formatDate= (dateString: string) =>
-    new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short', day: 'numeric', year: 'numeric',
-      hour: '2-digit', minute: '2-digit'
-    });
-
-  const formatDateTime = (dateString: string) => {
-  if (!dateString) return "-";
-  return new Date(dateString).toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-};
-
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-
-
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-      case 'paid':
-      case 'success': return 'bg-green-100 text-green-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'failed': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const handleDownloadInvoice = (transaction: Transaction) => {
-    const bookingData = transaction.booking;
-    if (!bookingData || !userProfile) return;
-
-    const invoiceData = {
-      bookingId: transaction.booking_id || transaction.id,
-      userName: userProfile.name,
-      userEmail: userProfile.email,
-      amount: transaction.amount,
-      seatNumber: bookingData.seats?.seats?.seat_number ?? "Any Available Seat",
-      bookingType: bookingData.type,
-      slot: bookingData.slot || '',
-      startDate: formatDateTime(bookingData.start_time),
-      endDate: formatDateTime(bookingData.end_time),
-      transactionId: transaction.id,
-      paymentDate: transaction.created_at,
-      status: transaction.status,
-      adminNotes: transaction.admin_notes || ''
-    };
-
-    generateInvoicePDF(invoiceData);
-    toast({ title: 'Invoice Downloaded', description: 'Your invoice has been downloaded.' });
-  };
-
-  if (loading || isLoading) return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-    </div>
-  );
+  // -------------------------------------------------------------
+  // Loading / Redirect
+  // -------------------------------------------------------------
+  if (loading || isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin w-10 h-10 border-b-2 border-primary rounded-full"></div>
+      </div>
+    );
+  }
 
   if (!user) return <Navigate to="/auth" replace />;
 
+  // -------------------------------------------------------------
+  // Render
+  // -------------------------------------------------------------
   return (
-    <div className="min-h-screen bg-background p-4 space-y-6">
+    <div className="min-h-screen p-4 space-y-6">
+
       {/* Header */}
-      <header className="flex justify-between items-start">
-        <div>
-          <h1 className="text-2xl font-bold text-primary">Profile</h1>
-          <p className="text-muted-foreground">Manage your account and view history</p>
-        </div>
-      </header>
+      <h1 className="text-2xl font-bold">Profile</h1>
 
       {/* Account Status */}
-      <Card className="w-full">
+      <Card>
         <CardHeader>
           <CardTitle className="flex justify-between items-center">
             Account Status
-            <Badge variant={userProfile?.approved ? 'default' : 'secondary'}>
-              {userProfile?.approved ? 'Approved' : 'Pending Approval'}
+            <Badge variant={userProfile?.approved ? "default" : "secondary"}>
+              {userProfile?.approved ? "Approved" : "Pending"}
             </Badge>
           </CardTitle>
         </CardHeader>
-        {!userProfile?.approved && (
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Your account is pending admin approval. You can browse seats but cannot make bookings yet.
-            </p>
-          </CardContent>
-        )}
       </Card>
 
-      {/* Profile Info */}
+      {/* Profile Information */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <User className="h-5 w-5" /> Personal Information
-            </span>
+          <CardTitle className="flex justify-between items-center">
+            Personal Information
             {!isEditing && (
               <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                <Edit className="h-4 w-4 mr-2" /> Change Password
+                <Edit className="h-4 w-4 mr-2" /> Edit
               </Button>
             )}
           </CardTitle>
         </CardHeader>
+
         <CardContent>
-{/* Profile Edit Form */}
-{isEditing ? (
-  <form onSubmit={handleUpdateProfile} className="space-y-4">
-    <div className="space-y-2">
-      <Label htmlFor="name">Full Name</Label>
-      <Input id="name" name="name" defaultValue={userProfile?.name} required />
-    </div>
-    <div className="space-y-2">
-      <Label htmlFor="phone">Phone Number</Label>
-      <Input id="phone" name="phone" defaultValue={userProfile?.phone} required />
-    </div>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div className="space-y-2">
-        <Label htmlFor="password">New Password</Label>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Enter new password"
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="confirmPassword">Confirm Password</Label>
-        <Input
-          id="confirmPassword"
-          name="confirmPassword"
-          type="password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          placeholder="Confirm password"
-        />
-      </div>
-    </div>
-    <div className="flex gap-2">
-      <Button type="submit" disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Changes'}</Button>
-      <Button type="button" variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>Cancel</Button>
-    </div>
-  </form>
-) : (
-  <div className="space-y-4">
-    <div className="flex items-center gap-3">
-      <User className="h-4 w-4 text-muted-foreground" />
-      <p>{userProfile?.name}</p>
-    </div>
-    <div className="flex items-center gap-3">
-      <Phone className="h-4 w-4 text-muted-foreground" />
-      <p>{userProfile?.phone}</p>
-    </div>
-  </div>
-)}
+          {isEditing ? (
+            <form onSubmit={handleUpdateProfile} className="space-y-4">
+              <div>
+                <Label>Name</Label>
+                <Input name="name" defaultValue={userProfile?.name} required />
+              </div>
 
+              <div>
+                <Label>Phone</Label>
+                <Input name="phone" defaultValue={userProfile?.phone} required />
+              </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>New Password</Label>
+                  <Input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label>Confirm Password</Label>
+                  <Input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button type="submit" disabled={isSaving}>
+                  {isSaving ? "Saving..." : "Save"}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <div className="space-y-4">
+              <p className="flex items-center gap-2"><User className="h-4 w-4" /> {userProfile?.name}</p>
+              <p className="flex items-center gap-2"><Phone className="h-4 w-4" /> {userProfile?.phone}</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Transactions */}
+      {/* Transaction History */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5" /> Transaction History</CardTitle>
-          <CardDescription>Your past and current bookings and payments</CardDescription>
+          <CardTitle>Transaction History</CardTitle>
+          <CardDescription>Your past bookings & payments</CardDescription>
         </CardHeader>
+
         <CardContent>
           {transactions.length === 0 ? (
-            <p className="text-center text-muted-foreground py-4">No transactions found</p>
+            <p className="text-center text-muted-foreground">No transactions found</p>
           ) : (
-            transactions.map(tx => (
-              <div key={tx.id} className="border rounded-lg p-4 space-y-2">
-                <div className="flex flex-wrap justify-between items-center gap-2">
-                  <div className="space-y-1 min-w-0">
-                    {tx.booking && (
-                      <div className="flex flex-wrap items-center gap-2">
-                        <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <span className="truncate">Seat No. <Badge variant='secondary'>{tx.booking.seats?.seat_number ?? "Any Available Seat"}</Badge></span>
-                       
-                      </div>
-                    )}
-                    {tx.booking?.slot && (
-                      <p className="text-sm text-muted-foreground">{tx.booking.slot} slot</p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <p className="font-bold whitespace-nowrap">₹{tx.amount}</p>
-                    <Badge className={getStatusColor(tx.status) + " whitespace-nowrap"}>{tx.status}</Badge>
-                    {(tx.status === "paid" || tx.status === "success" || tx.status === "completed") && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDownloadInvoice(tx)}
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
+            transactions.map((tx) => {
+              const normalizedStatus = tx.status?.toLowerCase().trim();
+              const allowDownload =
+                normalizedStatus === "paid" ||
+                normalizedStatus === "success" ||
+                normalizedStatus === "completed";
 
-                {tx.booking && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Clock className="h-4 w-4" />
-                    {formatDateTime(tx.booking.start_time)} to {formatDateTime(tx.booking.end_time)}
-                  </div>
-                )}
-                {tx.admin_notes && <p className="text-xs text-muted-foreground">Admin Notes: {tx.admin_notes}</p>}
-                <Separator />
-                <p className="text-xs text-muted-foreground">Transaction Date: {formatDateTime(tx.created_at)}</p>
-              </div>
-            ))
+              return (
+                <div key={tx.id} className="border rounded-lg p-4 space-y-2">
+                  {tx.booking && (
+                    <>
+                      <div className="flex justify-between">
+                        <div>
+                          <p className="font-semibold">{bookingCategoryLabel(tx.booking)}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {bookingSeatLabel(tx.booking)}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold">₹{tx.amount}</span>
+                          <Badge className={getStatusColor(tx.status)}>
+                            {tx.status}
+                          </Badge>
+
+                          {allowDownload && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDownloadInvoice(tx)}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Clock className="h-4 w-4" />
+                        {formatDateTime(tx.booking.start_time)} → {formatDateTime(tx.booking.end_time)}
+                      </div>
+
+                      {tx.admin_notes && (
+                        <p className="text-xs text-muted-foreground">Notes: {tx.admin_notes}</p>
+                      )}
+
+                      <Separator />
+                      <p className="text-xs text-muted-foreground">
+                        Transaction Date: {formatDateTime(tx.created_at)}
+                      </p>
+                    </>
+                  )}
+                </div>
+              );
+            })
           )}
         </CardContent>
       </Card>
 
       {/* Sign Out */}
-      <Button variant="destructive" size="lg" className="w-full flex items-center justify-center gap-2" onClick={handleSignOut}>
+      <Button
+        variant="destructive"
+        size="lg"
+        className="w-full"
+        onClick={handleSignOut}
+      >
         <LogOut className="h-4 w-4" /> Sign Out
       </Button>
     </div>
