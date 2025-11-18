@@ -124,18 +124,41 @@ export default function Home() {
           .order('created_at', { ascending: false })
           .limit(5);
        
-        const formattedBookings: RecentBooking[] = bookings?.map(booking => ({
-          id: booking.id,
-          seat_number: booking.seats?.seat_number || 0,
-          type: booking.type,
-          slot: booking.slot,
-          start_time: booking.membership_start_date,
-          end_time: booking.membership_end_date,
-          seat_category: booking.seat_category,
-          status: booking.status,
-          payment_status: booking.payment_status,
-          created_at: booking.created_at,
-        })) || [];
+          const formattedBookings: RecentBooking[] =
+            bookings?.map((booking: any) => {
+              let seatNumberValue;
+
+              // FIXED SEAT → seat number available
+              if (booking.seat_category === "fixed") {
+                seatNumberValue = booking.seats?.seat_number ?? "-";
+              }
+
+              // FLOATING → No fixed seat
+              else if (booking.seat_category === "floating") {
+                seatNumberValue = "Any Available Seat";
+              }
+
+              // LIMITED HOURS → No fixed seat
+              else if (booking.seat_category === "limited") {
+                seatNumberValue = booking.slot === "morning"
+                  ? "Limited Hours – Morning Shift"
+                  : "Limited Hours – Evening Shift";
+              }
+
+              return {
+                id: booking.id,
+                seat_number: seatNumberValue,
+                type: booking.type,
+                slot: booking.slot,
+                start_time: booking.membership_start_date,
+                end_time: booking.membership_end_date,
+                seat_category: booking.seat_category,
+                status: booking.status,
+                payment_status: booking.payment_status,
+                created_at: booking.created_at,
+              };
+            }) || [];
+
 
         setRecentBookings(formattedBookings);
         console.log(formattedBookings);

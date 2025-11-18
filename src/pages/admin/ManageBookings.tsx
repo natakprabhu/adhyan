@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { User, Users, Timer } from "lucide-react";
 
 import {
   Card,
@@ -34,6 +35,8 @@ interface Booking {
   id: string;
   user_id?: string;
   status: string;
+  seat_category?: string;
+  slot?: string; // already present but optional; keep it here
   payment_status: string;
   type: string;
   slot?: string;
@@ -244,6 +247,45 @@ export const ManageBookings = () => {
     setEditMembershipEndInput(isoToInputDateSimple(booking.membership_end_date));
     setIsBookingEditOpen(true);
   };
+
+
+const renderCategory = (category?: string) => {
+  if (!category) return "-";
+
+  const styles = "inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-100 text-xs";
+
+  switch (category.toLowerCase()) {
+    case "fixed":
+      return (
+        <span className={styles}>
+         Fixed <User className="w-4 h-4" /> 
+        </span>
+      );
+
+    case "floating":
+      return (
+        <span className={styles}>
+        Floating  <Users className="w-4 h-4" /> 
+        </span>
+      );
+
+    case "limited":
+    case "limited hours":
+      return (
+        <span className={styles}>
+         Limited Hours <Timer className="w-4 h-4" /> 
+        </span>
+      );
+
+    default:
+      return (
+        <span className={styles}>
+          {category}
+        </span>
+      );
+  }
+};
+
 
 const handleBookingSave = async () => {
   if (!editBooking) return;
@@ -563,6 +605,13 @@ const handleBookingSave = async () => {
                 <TableHead className="cursor-pointer" onClick={() => handleSort("seats")}>
                   Seat {sortConfig?.key === "seats" ? (sortConfig.direction === "asc" ? "▲" : "▼") : ""}
                 </TableHead>
+                <TableHead className="cursor-pointer" onClick={() => handleSort("seat_category")}>
+                  Seat Category {sortConfig?.key === "seat_category" ? (sortConfig.direction === "asc" ? "▲" : "▼") : ""}
+                </TableHead>
+
+                <TableHead className="cursor-pointer" onClick={() => handleSort("slot")}>
+                  Slot {sortConfig?.key === "slot" ? (sortConfig.direction === "asc" ? "▲" : "▼") : ""}
+                </TableHead>
 
                 <TableHead className="cursor-pointer" onClick={() => handleSort("membership_start_date")}>
                   Validity {sortConfig?.key === "membership_start_date" ? (sortConfig.direction === "asc" ? "▲" : "▼") : ""}
@@ -585,6 +634,9 @@ const handleBookingSave = async () => {
                 <TableRow key={booking.id}>
                   <TableCell>{booking.users?.name}</TableCell>
                   <TableCell>{booking.seats?.seat_number ?? "-"}</TableCell>
+                  <TableCell>{renderCategory(booking.seat_category)}</TableCell>
+
+                  <TableCell>{booking.slot ?? "-"}</TableCell>
                   <TableCell>
                     {booking.membership_start_date ? formatDate(booking.membership_start_date) : "-"} to {booking.membership_end_date ? formatDate(booking.membership_end_date) : "-"}
                   </TableCell>
@@ -663,6 +715,14 @@ const handleBookingSave = async () => {
                   <div className="col-span-2">
                     <Label>Admin Notes</Label>
                     <div>{selectedBooking.admin_notes ?? "-"}</div>
+                  </div>
+                  <div>
+                    <Label>Seat Category</Label>
+                    <div>{selectedBooking.seat_category?? "-"}</div>
+                  </div>
+                  <div>
+                    <Label>Seat Slot</Label>
+                    <div>{selectedBooking.slot?? "-"}</div>
                   </div>
                 </div>
 

@@ -15,19 +15,19 @@ import { SeatLayout } from "./SeatLayout";
 import { PasswordManager } from "./PasswordManager";
 import { ReleaseSeat } from "./ReleaseSeat";
 import { SaveSeatStatusButton } from "./SaveSeatStatusButton";
-
+import LimitedHoursUsersManagement from "@/pages/admin/LimitedHoursUsersManagement";
 
 export const AdminDashboard = () => {
   const { user, role, loading } = useAuth();
 
-  // Stats state
-  const [stats, setStats] = useState({
-    revenue: 0,
-    bookedSeats: 0,
-    fixedSeats: 0,
-    floatingSeats: 0,
-    users: 0,
-  });
+const [stats, setStats] = useState({
+  bookedSeats: 0,
+  free: 0,
+  fixedSeats: 0,
+  floatingSeats: 0,
+  limitedHours: 0,  // ✅ default
+});
+
   const [statsLoading, setStatsLoading] = useState(true);
 
   const getCurrentMonthRange = () => {
@@ -76,6 +76,19 @@ export const AdminDashboard = () => {
       //console.log("Fixed booking IDs:", fixedBookings?.map(b => b.id));
     }
 
+// LIMITED HOURS — NEW
+      const { data: limited } = await supabase
+        .from("bookings")
+        .select("id")
+        .eq("seat_category", "limited")
+        .eq("payment_status", "paid")
+        .eq("status", "confirmed")
+        .gte("membership_end_date", nowISO);
+
+      const limitedHoursCount = limited?.length ?? 0;
+
+
+
     // Count if needed
     const fixedCount = fixedBookings?.length ?? 0;
 
@@ -98,6 +111,7 @@ export const AdminDashboard = () => {
         bookedSeats: bookedCount ?? 0,
         fixedSeats: fixedCount ?? 0,
         floatingSeats: floatCount ?? 0,
+        limitedHours: limitedHoursCount,  
         users: usersRes.count ?? 0,
         free: freeFixedSeats ?? 0,
       });
@@ -173,27 +187,38 @@ export const AdminDashboard = () => {
 {/* Main Content */}
 <main className="flex-1 overflow-auto p-6">
   {/* Stats Cards */}
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-    <div className="p-6 bg-primary text-white shadow-lg rounded-xl flex flex-col justify-between hover:shadow-2xl transition">
-      <h3 className="text-sm opacity-80">Total Booked Seats</h3>
-      <p className="text-3xl font-bold mt-2">{statsLoading ? "—" : stats.bookedSeats}</p>
-    </div>
-
-    <div className="p-6 bg-white shadow-lg rounded-xl flex flex-col justify-between hover:shadow-2xl transition">
-      <h3 className="text-sm text-gray-500">Free Seats</h3>
-      <p className="text-3xl font-bold mt-2">{statsLoading ? "—" : stats.free}</p>
-    </div>
-
-    <div className="p-6 bg-white shadow-lg rounded-xl flex flex-col justify-between hover:shadow-2xl transition">
-      <h3 className="text-sm text-gray-500">Fixed Seats</h3>
-      <p className="text-3xl font-bold mt-2">{statsLoading ? "—" : stats.fixedSeats}</p>
-    </div>
-
-    <div className="p-6 bg-white shadow-lg rounded-xl flex flex-col justify-between hover:shadow-2xl transition">
-      <h3 className="text-sm text-gray-500">Floating Seats</h3>
-      <p className="text-3xl font-bold mt-2">{statsLoading ? "—" : stats.floatingSeats}</p>
-    </div>
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
+  {/* Total Booked */}
+  <div className="p-6 bg-primary text-white shadow-lg rounded-xl flex flex-col justify-between hover:shadow-2xl transition">
+    <h3 className="text-sm opacity-80">Total Booked Seats</h3>
+    <p className="text-3xl font-bold mt-2">{statsLoading ? "—" : stats.bookedSeats}</p>
   </div>
+
+  {/* Free */}
+  <div className="p-6 bg-white shadow-lg rounded-xl flex flex-col justify-between hover:shadow-2xl transition">
+    <h3 className="text-sm text-gray-500">Free Seats</h3>
+    <p className="text-3xl font-bold mt-2">{statsLoading ? "—" : stats.free}</p>
+  </div>
+
+  {/* Fixed */}
+  <div className="p-6 bg-white shadow-lg rounded-xl flex flex-col justify-between hover:shadow-2xl transition">
+    <h3 className="text-sm text-gray-500">Fixed Seats</h3>
+    <p className="text-3xl font-bold mt-2">{statsLoading ? "—" : stats.fixedSeats}</p>
+  </div>
+
+  {/* Floating */}
+  <div className="p-6 bg-white shadow-lg rounded-xl flex flex-col justify-between hover:shadow-2xl transition">
+    <h3 className="text-sm text-gray-500">Floating Seats</h3>
+    <p className="text-3xl font-bold mt-2">{statsLoading ? "—" : stats.floatingSeats}</p>
+  </div>
+
+<div className="p-6 bg-orange-100 text-orange-800 shadow-lg rounded-xl flex flex-col justify-between hover:shadow-2xl transition">
+  <h3 className="text-sm">Limited Hours Users</h3>
+  <p className="text-3xl font-bold mt-2">{statsLoading ? "—" : stats.limitedHours}</p>
+</div>
+
+</div>
+
 
         <Tabs defaultValue="bookings" className="w-full">
   <TabsList className="flex flex-wrap w-full gap-1 mb-4 border-b border-gray-200">
@@ -201,7 +226,7 @@ export const AdminDashboard = () => {
     <TabsTrigger value="users">All Users</TabsTrigger>
     <TabsTrigger value="fixed-users">Fixed Users</TabsTrigger>
     <TabsTrigger value="floating-users">Floating Users</TabsTrigger>
-    <TabsTrigger value="limited-users">Master Table</TabsTrigger>
+    <TabsTrigger value="limited-users">Limited Hours</TabsTrigger>
     <TabsTrigger value="biometric">Biometric</TabsTrigger>
     <TabsTrigger value="schedule">Seat Status</TabsTrigger>
     <TabsTrigger value="layout">Seat Layout</TabsTrigger>
@@ -214,7 +239,7 @@ export const AdminDashboard = () => {
   <TabsContent value="users"><UsersManagement /></TabsContent>
   <TabsContent value="fixed-users"><FixedUsersManagement /></TabsContent>
   <TabsContent value="floating-users"><FloatingUsersManagement /></TabsContent>
-  <TabsContent value="limited-users"><MasterAdminView /></TabsContent>
+  <TabsContent value="limited-users"><LimitedHoursUsersManagement /></TabsContent>
   <TabsContent value="biometric"><BiometricManagement /></TabsContent>
   <TabsContent value="schedule"><GanttChart /></TabsContent>
   <TabsContent value="layout"><SeatLayout /></TabsContent>

@@ -176,10 +176,15 @@ export default function NewMembershipBookingWizard({
         description: `${selectedCategory === 'fixed' ? 'Fixed' : selectedCategory === 'floating' ? 'Floating' : 'Limited Hours'} seat membership for ${duration} month${duration > 1 ? 's' : ''}`,
       };
 
-      // Add limited hours metadata
+      // Add Limited Hours metadata
       if (selectedCategory === 'limited') {
-        bookingData.slot = selectedShift;
-        //bookingData.limited_hours = 9;
+        bookingData.slot = selectedShift;     // required for 'limited'
+        
+        //bookingData.limited_hours = 9;        // optional but recommended
+      } else {
+        // For fixed and floating: slot MUST be null (to satisfy bookings_slot_check)
+        bookingData.slot = null;
+        bookingData.limited_hours = null;
       }
 
       const { error } = await supabase.from('bookings').insert(bookingData);
