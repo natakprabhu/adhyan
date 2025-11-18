@@ -52,7 +52,7 @@ export default function MembershipBookingWizard({
   }, [isOpen]);
 
   const calculateTotalCost = () => {
-    const monthlyCost = selectedCategory === 'fixed' ? 3300 : 2200;
+    const monthlyCost = selectedCategory === 'fixed' ? 3500 : 2200;
     return monthlyCost * duration;
   };
 
@@ -111,7 +111,7 @@ export default function MembershipBookingWizard({
         seat_id: seatId,
         seat_category: selectedCategory,
         duration_months: duration,
-        monthly_cost: selectedCategory === 'fixed' ? 3300 : 2200,
+        monthly_cost: selectedCategory === 'fixed' ? 3500 : 2200,
         membership_start_date: startDate.toISOString().split('T')[0],
         membership_end_date: endDate.toISOString().split('T')[0],
         start_time: startDate.toISOString(),

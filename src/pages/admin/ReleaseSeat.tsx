@@ -8,44 +8,66 @@ import { toast } from "@/hooks/use-toast";
 
 interface Booking {
   id: string;
-  user_id?: string;
-  seats?: { seat_number?: number };
-  membership_start_date?: string | null;
-  membership_end_date?: string | null;
+  user_id: string;
+  seat_id: string | null;
+  membership_start_date: string | null;
+  membership_end_date: string | null;
+  seats?: { seat_number?: number | null };
   users?: { id?: string; name?: string; email?: string };
 }
 
-export const ReleaseSeat = () => {
-  const [availableSeats, setAvailableSeats] = useState<Booking[]>([]);
-  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [endDate, setEndDate] = useState<string>(""); // For custom membership end date
+interface Seat {
+  id: string;
+  seat_number: number | null;
+}
 
-  // Fetch active bookings when component mounts
+export const ReleaseSeat = () => {
+  const [availableBookings, setAvailableBookings] = useState<Booking[]>([]);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+
+  const [oldEndDate, setOldEndDate] = useState("");
+  const [newSeatStartDate, setNewSeatStartDate] = useState("");
+
+  const [seats, setSeats] = useState<Seat[]>([]);
+  const [selectedNewSeatId, setSelectedNewSeatId] = useState("");
+
+  const [isLoading, setIsLoading] = useState(false);
+
   useEffect(() => {
-    fetchAvailableSeats();
+    fetchAvailableBookings();
+    fetchSeats();
   }, []);
 
-  const fetchAvailableSeats = async () => {
+  // -------------------------
+  // FETCH BOOKINGS WITH JOIN
+  // -------------------------
+  const fetchAvailableBookings = async () => {
     try {
       setIsLoading(true);
       const nowISO = new Date().toISOString();
+
       const { data, error } = await supabase
         .from("bookings")
-        .select(
-          "id, seats(seat_number), membership_start_date, membership_end_date, users(id, name, email)"
-        )
+        .select(`
+          id,
+          user_id,
+          seat_id,
+          membership_start_date,
+          membership_end_date,
+          seats ( seat_number ),
+          users ( id, name, email )
+        `)
         .eq("seat_category", "fixed")
         .gte("membership_end_date", nowISO)
         .order("membership_start_date", { ascending: true });
 
       if (error) throw error;
-      setAvailableSeats(data || []);
+      setAvailableBookings(data || []);
     } catch (err) {
-      console.error("❌ fetchAvailableSeats error:", err);
+      console.error("❌ fetchAvailableBookings:", err);
       toast({
         title: "Error",
-        description: "Failed to fetch booked seats.",
+        description: "Failed to fetch bookings.",
         variant: "destructive",
       });
     } finally {
@@ -53,59 +75,135 @@ export const ReleaseSeat = () => {
     }
   };
 
-  const releaseSeat = async () => {
-    if (!selectedBooking) {
+  // -------------------------
+  // FETCH SEATS
+  // -------------------------
+  const fetchSeats = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("seats")
+        .select("id, seat_number")
+        .order("seat_number", { ascending: true });
+
+      if (error) throw error;
+      setSeats(data || []);
+    } catch (err) {
+      console.error("❌ fetchSeats:", err);
       toast({
         title: "Error",
-        description: "Select a seat to release.",
+        description: "Failed to fetch seat list.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleSelectBooking = (id: string) => {
+    const booking = availableBookings.find((b) => b.id === id) || null;
+    setSelectedBooking(booking);
+
+    setOldEndDate(
+      booking?.membership_end_date
+        ? booking.membership_end_date.slice(0, 10)
+        : ""
+    );
+    setNewSeatStartDate("");
+    setSelectedNewSeatId("");
+  };
+
+  const handleBack = () => {
+    setSelectedBooking(null);
+    setOldEndDate("");
+    setNewSeatStartDate("");
+    setSelectedNewSeatId("");
+  };
+
+  // -------------------------
+  // MOVE USER & RELEASE OLD SEAT
+  // -------------------------
+  const moveAndRelease = async () => {
+    if (!selectedBooking) return;
+
+    if (!oldEndDate) {
+      toast({ title: "Error", description: "Enter old seat end date.", variant: "destructive" });
       return;
     }
-
-    if (!endDate) {
-      toast({
-        title: "Error",
-        description: "Please select an end date.",
-        variant: "destructive",
-      });
+    if (!selectedNewSeatId) {
+      toast({ title: "Error", description: "Select a new seat.", variant: "destructive" });
+      return;
+    }
+    if (!newSeatStartDate) {
+      toast({ title: "Error", description: "Enter new seat start date.", variant: "destructive" });
       return;
     }
 
     try {
       setIsLoading(true);
 
-      // Update booking with user-selected end date
-      const { error: updateError } = await supabase
+      const originalEnd = selectedBooking.membership_end_date;
+
+      // Step 1: Update old booking
+      const { error: updateErr } = await supabase
         .from("bookings")
-        .update({ membership_end_date: endDate })
+        .update({
+          membership_end_date: oldEndDate,
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", selectedBooking.id);
 
-      if (updateError) throw updateError;
+      if (updateErr) throw updateErr;
 
-      // Create zero-amount transaction for audit
-      await supabase.from("transactions").insert({
-        booking_id: selectedBooking.id,
-        user_id: selectedBooking.user_id,
-        amount: 0,
-        status: "completed",
-        admin_notes: `Seat released. Booking end set to ${endDate}`,
-      });
+      // Step 2: Create new booking for new seat
+      const newSeat = seats.find((s) => s.id === selectedNewSeatId);
+
+      const { data: newBooking, error: newBookingErr } = await supabase
+        .from("bookings")
+        .insert({
+          user_id: selectedBooking.user_id,
+          seat_id: selectedNewSeatId,
+          seat_number: newSeat?.seat_number || null,  // add seat number
+          seat_category: "fixed",
+          membership_start_date: newSeatStartDate,
+          membership_end_date: originalEnd,
+          status: "confirmed",
+          payment_status: "paid",
+          description: `Moved from booking ${selectedBooking.id}`,
+          created_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (newBookingErr) throw newBookingErr;
+
+      // Step 3: Zero-amount transactions
+      await supabase.from("transactions").insert([
+        {
+          booking_id: selectedBooking.id,
+          user_id: selectedBooking.user_id,
+          amount: 0,
+          status: "completed",
+          admin_notes: `Old seat validity changed to ${oldEndDate}`,
+        },
+        {
+          booking_id: newBooking.id,
+          user_id: selectedBooking.user_id,
+          amount: 0,
+          status: "completed",
+          admin_notes: `New seat assigned. Valid until ${originalEnd}`,
+        },
+      ]);
 
       toast({
         title: "Success",
-        description: `Seat ${selectedBooking.seats?.seat_number} released.`,
+        description: "User moved successfully.",
       });
 
-      // Reset selections and refresh
-      setSelectedBooking(null);
-      setEndDate("");
-      fetchAvailableSeats();
+      handleBack();
+      fetchAvailableBookings();
     } catch (err) {
-      console.error("❌ releaseSeat error:", err);
+      console.error("❌ moveAndRelease:", err);
       toast({
         title: "Error",
-        description: "Failed to release seat.",
+        description: "Seat move failed.",
         variant: "destructive",
       });
     } finally {
@@ -113,90 +211,95 @@ export const ReleaseSeat = () => {
     }
   };
 
-  const handleBack = () => {
-    setSelectedBooking(null);
-    setEndDate("");
-  };
-
+  // -------------------------
+  // UI
+  // -------------------------
   return (
-    <div className="p-4 border rounded-md bg-white shadow-md max-w-md mx-auto space-y-4">
-      <h2 className="text-lg font-semibold">Release Seat</h2>
+    <div className="p-4 border rounded-md bg-white shadow-md max-w-lg mx-auto space-y-4">
+      <h2 className="text-lg font-semibold">Release & Move Seat</h2>
 
       {!selectedBooking && (
         <div>
-          <Label>Select Seat to Release</Label>
-         <select
-  value={selectedBooking?.id || ""}
-  onChange={(e) => {
-    const booking = availableSeats.find((b) => b.id === e.target.value) || null;
-    setSelectedBooking(booking);
-    setEndDate(
-      booking?.membership_end_date
-        ? booking.membership_end_date.slice(0, 10)
-        : ""
-    ); 
-  }}
-  className="w-full p-2 border rounded"
->
-  <option value="">Select a seat</option>
-  {availableSeats
-    .slice() // create a copy so original array isn't mutated
-    .sort((a, b) => {
-      const seatA = a.seats?.seat_number || 0;
-      const seatB = b.seats?.seat_number || 0;
-      return seatA - seatB;
-    })
-    .map((b) => (
-      <option key={b.id} value={b.id}>
-        Seat {b.seats?.seat_number} (Booked by {b.users?.name})
-      </option>
-    ))}
-</select>
+          <Label>Select Booking</Label>
+          <select
+            value={selectedBooking?.id || ""}
+            onChange={(e) => handleSelectBooking(e.target.value)}
+            className="w-full p-2 border rounded"
+          >
+            <option value="">Select a booking</option>
 
+            {availableBookings
+              .slice()
+              .sort(
+                (a, b) =>
+                  (a.seats?.seat_number || 0) -
+                  (b.seats?.seat_number || 0)
+              )
+              .map((b) => (
+                <option key={b.id} value={b.id}>
+                  Seat {b.seats?.seat_number} — {b.users?.name}
+                </option>
+              ))}
+          </select>
         </div>
       )}
 
       {selectedBooking && (
-        <div className="border p-3 rounded bg-gray-50 space-y-2">
-          <h4 className="font-semibold mb-2">Booking Details</h4>
+        <div className="border p-3 rounded bg-gray-50 space-y-3">
+          <h4 className="font-semibold">Booking Details</h4>
+
+          <p><strong>User:</strong> {selectedBooking.users?.name}</p>
+
           <p>
-            <strong>User:</strong> {selectedBooking.users?.name} (
-            {selectedBooking.users?.email})
-          </p>
-          <p>
-            <strong>Seat:</strong> {selectedBooking.seats?.seat_number}
-          </p>
-          <p>
-            <strong>Validity:</strong>{" "}
-            {selectedBooking.membership_start_date?.slice(0, 10)} to{" "}
-            {selectedBooking.membership_end_date?.slice(0, 10)}
+            <strong>Current Seat:</strong>{" "}
+            {selectedBooking.seats?.seat_number}
           </p>
 
-          <div className="mt-2">
-            <Label>Set Membership End Date</Label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-full p-2 border rounded"
-              min={selectedBooking.membership_start_date?.slice(0, 10) || undefined} // prevent selecting before start
-            />
-          </div>
-
-          <p className="text-sm text-gray-500 mt-2">
-            Confirm before releasing this seat.
+          <p>
+            <strong>Original Validity:</strong>{" "}
+            {selectedBooking.membership_start_date} →{" "}
+            {selectedBooking.membership_end_date}
           </p>
 
-          <div className="flex justify-end gap-2 mt-2">
-            <Button variant="outline" onClick={handleBack}>
-              Back
-            </Button>
+          <Label>Old Seat New End Date</Label>
+          <input
+            type="date"
+            className="w-full p-2 border rounded"
+            value={oldEndDate}
+            min={selectedBooking.membership_start_date || undefined}
+            onChange={(e) => setOldEndDate(e.target.value)}
+          />
+
+          <Label>Select New Seat</Label>
+          <select
+            value={selectedNewSeatId}
+            onChange={(e) => setSelectedNewSeatId(e.target.value)}
+            className="w-full p-2 border rounded"
+          >
+            <option value="">Select new seat</option>
+            {seats.map((s) => (
+              <option key={s.id} value={s.id}>
+                Seat {s.seat_number}
+              </option>
+            ))}
+          </select>
+
+          <Label>New Seat Start Date</Label>
+          <input
+            type="date"
+            className="w-full p-2 border rounded"
+            value={newSeatStartDate}
+            onChange={(e) => setNewSeatStartDate(e.target.value)}
+          />
+
+          <div className="flex justify-end gap-2 mt-3">
+            <Button variant="outline" onClick={handleBack}>Back</Button>
             <Button
               variant="destructive"
-              onClick={releaseSeat}
+              onClick={moveAndRelease}
               disabled={isLoading}
             >
-              {isLoading ? "Releasing..." : "Release Seat"}
+              {isLoading ? "Processing..." : "Release & Move"}
             </Button>
           </div>
         </div>
