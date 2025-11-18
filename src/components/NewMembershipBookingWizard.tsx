@@ -418,16 +418,13 @@ const totalSteps = selectedCategory === "floating" ? 4 : 5;
       </option>
     ))}
   </select>
-
-
-
             
                 </div>
               
               <Card className="bg-primary/5 border-primary/20">
                 <CardContent className="pt-6">
                   <div className="text-center space-y-2">
-                    <div className="text-2xl font-bold text-primary">₹3,300 per month</div>
+                    <div className="text-2xl font-bold text-primary">₹3,500 per month</div>
                     <p className="text-sm text-muted-foreground">Personal seat with locker included</p>
                   </div>
                 </CardContent>
