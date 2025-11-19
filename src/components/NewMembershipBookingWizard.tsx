@@ -194,14 +194,6 @@ export default function NewMembershipBookingWizard({
       // Set a success message in the wizard itself (instead of toaster)
       setStep(5); // move to confirmation step
 
-      // optional callback
-      //if (onBookingComplete) onBookingComplete();
-      if (onBookingComplete) {
-        setTimeout(() => onBookingComplete(), 10);
-      }
-
-
-
     } catch (error) {
       console.error('Error creating booking:', error);
       toast({

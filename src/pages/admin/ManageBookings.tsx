@@ -95,6 +95,9 @@ export const ManageBookings = () => {
   const [editMembershipStartInput, setEditMembershipStartInput] = useState<string>(""); // date
   const [editMembershipEndInput, setEditMembershipEndInput] = useState<string>(""); // date
 
+const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+const [deleteBookingData, setDeleteBookingData] = useState<Booking | null>(null);
+
 
   // Seat release dialog
   const [isReleaseSeatOpen, setIsReleaseSeatOpen] = useState(false);
@@ -283,6 +286,44 @@ const renderCategory = (category?: string) => {
           {category}
         </span>
       );
+  }
+};
+
+const handleDeleteBooking = (booking: Booking) => {
+  setDeleteBookingData(booking);
+  setIsDeleteDialogOpen(true);
+};
+
+const confirmDeleteBooking = async () => {
+  if (!deleteBookingData) return;
+
+  try {
+    // 1️⃣ Delete related transactions first (FK safe)
+    await supabase.from("transactions").delete().eq("booking_id", deleteBookingData.id);
+
+    // 2️⃣ Delete booking itself
+    const { error } = await supabase
+      .from("bookings")
+      .delete()
+      .eq("id", deleteBookingData.id);
+
+    if (error) throw error;
+
+    toast({
+      title: "Deleted",
+      description: "Booking removed successfully.",
+    });
+
+    setIsDeleteDialogOpen(false);
+    setDeleteBookingData(null);
+    await fetchBookings();
+  } catch (err) {
+    console.error("❌ Delete booking error:", err);
+    toast({
+      title: "Error",
+      description: "Failed to delete booking.",
+      variant: "destructive",
+    });
   }
 };
 
@@ -659,6 +700,8 @@ const handleBookingSave = async () => {
                       {booking.payment_status !== "paid" && (
                         <Button size="sm" variant="secondary" onClick={() => handleMarkPaidClick(booking)}>Mark Paid</Button>
                       )}
+                      <Button variant="destructive" size="sm" onClick={() => handleDeleteBooking(booking)}> Delete </Button>
+
                     </div>
                   </TableCell>
                 </TableRow>
@@ -930,6 +973,27 @@ const handleBookingSave = async () => {
       </Dialog>
 
 
+<Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+  <DialogContent className="max-w-sm">
+    <DialogHeader>
+      <DialogTitle>Delete Booking?</DialogTitle>
+    </DialogHeader>
+
+    <p className="text-gray-600">
+      Are you sure you want to delete this booking?  
+      This will also delete all related transactions.
+    </p>
+
+    <div className="flex justify-end gap-2 mt-4">
+      <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+        Cancel
+      </Button>
+      <Button variant="destructive" onClick={confirmDeleteBooking}>
+        Delete
+      </Button>
+    </div>
+  </DialogContent>
+</Dialog>
 
 
     </div>
