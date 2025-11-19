@@ -54,6 +54,7 @@ export const ReleaseSeat = () => {
           seat_id,
           membership_start_date,
           membership_end_date,
+          description,       
           seats ( seat_number ),
           users ( id, name, email )
         `)
