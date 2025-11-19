@@ -195,7 +195,13 @@ export default function NewMembershipBookingWizard({
       setStep(5); // move to confirmation step
 
       // optional callback
-      if (onBookingComplete) onBookingComplete();
+      //if (onBookingComplete) onBookingComplete();
+      if (onBookingComplete) {
+        setTimeout(() => onBookingComplete(), 10);
+      }
+
+
+
     } catch (error) {
       console.error('Error creating booking:', error);
       toast({
