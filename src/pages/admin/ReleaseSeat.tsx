@@ -162,6 +162,7 @@ export const ReleaseSeat = () => {
           seat_id: selectedNewSeatId,
           seat_number: newSeat?.seat_number || null,  // add seat number
           seat_category: "fixed",
+          type: "fixed",                 // 🔥 ADD THIS
           membership_start_date: newSeatStartDate,
           membership_end_date: originalEnd,
           status: "confirmed",
