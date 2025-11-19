@@ -186,7 +186,37 @@ const [stats, setStats] = useState({
 
 {/* Main Content */}
 <main className="flex-1 overflow-auto p-6">
-  {/* Stats Cards */}
+ 
+
+
+        <Tabs defaultValue="bookings" className="w-full">
+  <TabsList className="flex flex-wrap w-full gap-1 mb-4 border-b border-gray-200">
+    <TabsTrigger value="bookings">Bookings</TabsTrigger>
+    <TabsTrigger value="users">All Users</TabsTrigger>
+    <TabsTrigger value="fixed-users">Fixed Users</TabsTrigger>
+    <TabsTrigger value="floating-users">Floating Users</TabsTrigger>
+    <TabsTrigger value="limited-users">Limited Hours</TabsTrigger>
+    <TabsTrigger value="biometric">Biometric</TabsTrigger>
+    <TabsTrigger value="schedule">Seat Status</TabsTrigger>
+    <TabsTrigger value="layout">Seat Layout</TabsTrigger>
+    <TabsTrigger value="wallet">Wallet</TabsTrigger>
+    <TabsTrigger value="passwords">Password Manager</TabsTrigger>
+    <TabsTrigger value="release-seat">Release Seat</TabsTrigger> {/* New Tab */}
+  </TabsList>
+
+  <TabsContent value="bookings"><ManageBookings /></TabsContent>
+  <TabsContent value="users"><UsersManagement /></TabsContent>
+  <TabsContent value="fixed-users"><FixedUsersManagement /></TabsContent>
+  <TabsContent value="floating-users"><FloatingUsersManagement /></TabsContent>
+  <TabsContent value="limited-users"><LimitedHoursUsersManagement /></TabsContent>
+  <TabsContent value="biometric"><BiometricManagement /></TabsContent>
+  <TabsContent value="schedule"><GanttChart /></TabsContent>
+  <TabsContent value="layout"><SeatLayout /></TabsContent>
+  <TabsContent value="wallet"><WalletManagement /></TabsContent>
+  <TabsContent value="passwords"><PasswordManager /></TabsContent>
+  <TabsContent value="release-seat"><ReleaseSeat /></TabsContent> {/* New Tab */}
+</Tabs>
+ {/* Stats Cards */}
 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
   {/* Total Booked */}
   <div className="p-6 bg-primary text-white shadow-lg rounded-xl flex flex-col justify-between hover:shadow-2xl transition">
@@ -218,36 +248,6 @@ const [stats, setStats] = useState({
 </div>
 
 </div>
-
-
-        <Tabs defaultValue="bookings" className="w-full">
-  <TabsList className="flex flex-wrap w-full gap-1 mb-4 border-b border-gray-200">
-    <TabsTrigger value="bookings">Bookings</TabsTrigger>
-    <TabsTrigger value="users">All Users</TabsTrigger>
-    <TabsTrigger value="fixed-users">Fixed Users</TabsTrigger>
-    <TabsTrigger value="floating-users">Floating Users</TabsTrigger>
-    <TabsTrigger value="limited-users">Limited Hours</TabsTrigger>
-    <TabsTrigger value="biometric">Biometric</TabsTrigger>
-    <TabsTrigger value="schedule">Seat Status</TabsTrigger>
-    <TabsTrigger value="layout">Seat Layout</TabsTrigger>
-    <TabsTrigger value="wallet">Wallet</TabsTrigger>
-    <TabsTrigger value="passwords">Password Manager</TabsTrigger>
-    <TabsTrigger value="release-seat">Release Seat</TabsTrigger> {/* New Tab */}
-  </TabsList>
-
-  <TabsContent value="bookings"><ManageBookings /></TabsContent>
-  <TabsContent value="users"><UsersManagement /></TabsContent>
-  <TabsContent value="fixed-users"><FixedUsersManagement /></TabsContent>
-  <TabsContent value="floating-users"><FloatingUsersManagement /></TabsContent>
-  <TabsContent value="limited-users"><LimitedHoursUsersManagement /></TabsContent>
-  <TabsContent value="biometric"><BiometricManagement /></TabsContent>
-  <TabsContent value="schedule"><GanttChart /></TabsContent>
-  <TabsContent value="layout"><SeatLayout /></TabsContent>
-  <TabsContent value="wallet"><WalletManagement /></TabsContent>
-  <TabsContent value="passwords"><PasswordManager /></TabsContent>
-  <TabsContent value="release-seat"><ReleaseSeat /></TabsContent> {/* New Tab */}
-</Tabs>
-
       </main>
     </div>
   );
