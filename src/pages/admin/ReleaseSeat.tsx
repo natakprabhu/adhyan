@@ -155,23 +155,31 @@ export const ReleaseSeat = () => {
       // Step 2: Create new booking for new seat
       const newSeat = seats.find((s) => s.id === selectedNewSeatId);
 
-      const { data: newBooking, error: newBookingErr } = await supabase
-        .from("bookings")
-        .insert({
-          user_id: selectedBooking.user_id,
-          seat_id: selectedNewSeatId,
-          seat_number: newSeat?.seat_number || null,  // add seat number
-          seat_category: "fixed",
-          type: "fixed",                 // 🔥 ADD THIS
-          membership_start_date: newSeatStartDate,
-          membership_end_date: originalEnd,
-          status: "confirmed",
-          payment_status: "paid",
-          description: `Moved from booking ${selectedBooking.id}`,
-          created_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
+
+const { data: newBooking, error: newBookingErr } = await supabase
+  .from("bookings")
+  .insert({
+    user_id: selectedBooking.user_id,
+    seat_id: selectedNewSeatId,
+    seat_category: "fixed",
+    type: "fixed",
+
+    membership_start_date: newSeatStartDate,
+    membership_end_date: originalEnd,
+
+    start_time: `${newSeatStartDate}T00:00:00`,  // 🔥 REQUIRED
+    end_time: `${originalEnd}T23:59:59`,        // 🔥 REQUIRED
+
+    status: "confirmed",
+    payment_status: "paid",
+    description: `Moved from booking ${selectedBooking.id}`,
+    created_at: new Date().toISOString()
+  })
+  .select()
+  .single();
+
+
+
 
       if (newBookingErr) throw newBookingErr;
 
