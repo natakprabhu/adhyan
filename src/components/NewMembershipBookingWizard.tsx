@@ -184,7 +184,7 @@ export default function NewMembershipBookingWizard({
       } else {
         // For fixed and floating: slot MUST be null (to satisfy bookings_slot_check)
         bookingData.slot = null;
-        bookingData.limited_hours = null;
+        //bookingData.limited_hours = null;
       }
 
       const { error } = await supabase.from('bookings').insert(bookingData);

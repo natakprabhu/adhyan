@@ -141,14 +141,24 @@ export const ReleaseSeat = () => {
 
       const originalEnd = selectedBooking.membership_end_date;
 
-      // Step 1: Update old booking
-      const { error: updateErr } = await supabase
-        .from("bookings")
-        .update({
-          membership_end_date: oldEndDate,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", selectedBooking.id);
+
+
+
+        // Step 1: Update old booking
+        const updatedDescription = `${
+          selectedBooking.description || ""
+        } (Old seat revoked on ${oldEndDate})`;
+
+        const { error: updateErr } = await supabase
+          .from("bookings")
+          .update({
+            membership_end_date: oldEndDate,
+            description: updatedDescription,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", selectedBooking.id);
+
+
 
       if (updateErr) throw updateErr;
 
