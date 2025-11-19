@@ -216,6 +216,9 @@ const [stats, setStats] = useState({
   <TabsContent value="passwords"><PasswordManager /></TabsContent>
   <TabsContent value="release-seat"><ReleaseSeat /></TabsContent> {/* New Tab */}
 </Tabs>
+
+  <br/>
+  <br/>
  {/* Stats Cards */}
 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
   {/* Total Booked */}
