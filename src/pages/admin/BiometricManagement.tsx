@@ -51,21 +51,25 @@ export const BiometricManagement = () => {
       if (assignmentsError) throw assignmentsError;
       setAssignments(assignmentsData || []);
 
-      // Fetch approved users without biometric assignments
+     // Fetch approved active users without biometric assignments
       const assignedUserIds = (assignmentsData || []).map(a => a.user_id);
+      
+      const today = new Date().toISOString();
       
       const { data: usersData, error: usersError } = await supabase
         .from('users')
-        .select('id, name, email, approved')
-        .eq('approved', true);
-
+        .select('id, name, email, approved, membership_end_date')
+        .eq('approved', true)
+        .gte('membership_end_date', today);  // ⬅ filter active only
+      
       if (usersError) throw usersError;
-
+      
       const users = usersData || [];
       const unassignedUsers = users.filter(user => !assignedUserIds.includes(user.id));
       
       setPendingUsers(unassignedUsers);
       setApprovedUsers(users);
+
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
