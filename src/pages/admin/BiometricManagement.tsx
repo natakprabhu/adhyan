@@ -54,10 +54,14 @@ export const BiometricManagement = () => {
       // Fetch approved users without biometric assignments
       const assignedUserIds = (assignmentsData || []).map(a => a.user_id);
       
+      const today = new Date().toISOString();
+
       const { data: usersData, error: usersError } = await supabase
         .from('users')
-        .select('id, name, email, approved')
-        .eq('approved', true);
+        .select('id, name, email, approved, membership_end_date')
+        .eq('approved', true)
+        .gte('membership_end_date', today);  // only active users
+
 
       if (usersError) throw usersError;
 
