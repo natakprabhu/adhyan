@@ -231,6 +231,49 @@ const { data: newBooking, error: newBookingErr } = await supabase
     }
   };
 
+
+// -------------------------
+  // JUST RELEASE SEAT (NO REPLACEMENT)
+  // -------------------------
+  const releaseOnly = async () => {
+    if (!selectedBooking || !oldEndDate) return;
+
+    try {
+      setIsLoading(true);
+      const updatedDescription = `${selectedBooking.description || ""} (Seat released early on ${oldEndDate})`;
+
+      const { error } = await supabase
+        .from("bookings")
+        .update({
+          membership_end_date: oldEndDate,
+          end_time: `${oldEndDate}T23:59:59`,
+          description: updatedDescription,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", selectedBooking.id);
+
+      if (error) throw error;
+
+      await supabase.from("transactions").insert([{
+        booking_id: selectedBooking.id,
+        user_id: selectedBooking.user_id,
+        amount: 0,
+        status: "completed",
+        admin_notes: `Seat released early. End date changed to ${oldEndDate}`,
+      }]);
+
+      toast({ title: "Success", description: "Seat released successfully." });
+      handleBack();
+      fetchAvailableBookings();
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Error", description: "Release failed.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
   // -------------------------
   // UI
   // -------------------------
@@ -320,6 +363,14 @@ const { data: newBooking, error: newBookingErr } = await supabase
               disabled={isLoading}
             >
               {isLoading ? "Processing..." : "Release & Move"}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={releaseOnly}
+              disabled={isLoading}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              {isLoading ? "Processing..." : "Just Release Seat"}
             </Button>
           </div>
         </div>
