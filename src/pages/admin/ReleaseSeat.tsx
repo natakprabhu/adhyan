@@ -234,7 +234,7 @@ const { data: newBooking, error: newBookingErr } = await supabase
 // -------------------------
 // RELEASE SEAT ONLY (DEBUG VERSION)
 // -------------------------
-const releaseSeatOnly = async () => {
+const releaseOnly = async () => {
   if (!selectedBooking) {
     console.warn("❌ No booking selected");
     return;
