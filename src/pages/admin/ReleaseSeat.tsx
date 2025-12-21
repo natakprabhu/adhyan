@@ -231,14 +231,8 @@ const { data: newBooking, error: newBookingErr } = await supabase
     }
   };
 
-// -------------------------
-// RELEASE SEAT ONLY (DEBUG VERSION)
-// -------------------------
 const releaseOnly = async () => {
-  if (!selectedBooking) {
-    console.warn("❌ No booking selected");
-    return;
-  }
+  if (!selectedBooking) return;
 
   if (!oldEndDate) {
     toast({
@@ -252,54 +246,27 @@ const releaseOnly = async () => {
   try {
     setIsLoading(true);
 
-    console.log("🟡 Releasing seat for booking:", selectedBooking.id);
-    console.log("🟡 Old seat id:", selectedBooking.seat_id);
-    console.log("🟡 New end date:", oldEndDate);
-
+    // ONLY update the end date and the description
     const payload = {
       membership_end_date: oldEndDate,
-      seat_id: null,
+      // end_time: `${oldEndDate}T23:59:59`, // Add this if your DB requires the time field updated too
       updated_at: new Date().toISOString(),
       description: `${
         selectedBooking.description || ""
-      } (Seat released on ${oldEndDate})`,
+      } (Membership shortened to ${oldEndDate})`,
     };
 
-    console.log("🟡 Update payload:", payload);
-
-    // UPDATE
-    const { data, error, count } = await supabase
+    const { data, error } = await supabase
       .from("bookings")
       .update(payload)
       .eq("id", selectedBooking.id)
-      .select(); // 👈 IMPORTANT for debugging
-
-    console.log("🟢 Update response:", { data, error, count });
+      .select();
 
     if (error) throw error;
 
-    if (!data || data.length === 0) {
-      console.error("❌ No rows updated — check RLS or ID mismatch");
-      toast({
-        title: "Error",
-        description: "No booking updated (possible RLS issue)",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // VERIFY
-    const { data: verifyData, error: verifyError } = await supabase
-      .from("bookings")
-      .select("id, seat_id, membership_end_date")
-      .eq("id", selectedBooking.id)
-      .single();
-
-    console.log("🔵 Verification fetch:", verifyData, verifyError);
-
     toast({
       title: "Success",
-      description: "Seat released successfully.",
+      description: "Membership end date updated successfully.",
     });
 
     handleBack();
@@ -308,14 +275,13 @@ const releaseOnly = async () => {
     console.error("❌ releaseSeatOnly FAILED:", err);
     toast({
       title: "Error",
-      description: "Seat release failed. Check console logs.",
+      description: "Failed to update end date. check console for details.",
       variant: "destructive",
     });
   } finally {
     setIsLoading(false);
   }
 };
-
 
   // -------------------------
   // UI
