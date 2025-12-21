@@ -233,56 +233,32 @@ const { data: newBooking, error: newBookingErr } = await supabase
 
 const releaseOnly = async () => {
   if (!selectedBooking) return;
-
-  if (!oldEndDate) {
-    toast({
-      title: "Error",
-      description: "Enter seat release date.",
-      variant: "destructive",
-    });
-    return;
-  }
+  if (!oldEndDate) return;
 
   try {
     setIsLoading(true);
 
-    // ONLY update the end date and the description
-    const payload = {
-      membership_end_date: oldEndDate,
-      // end_time: `${oldEndDate}T23:59:59`, // Add this if your DB requires the time field updated too
-      updated_at: new Date().toISOString(),
-      description: `${
-        selectedBooking.description || ""
-      } (Membership shortened to ${oldEndDate})`,
-    };
-
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("bookings")
-      .update(payload)
-      .eq("id", selectedBooking.id)
-      .select();
+      .update({
+        membership_end_date: oldEndDate,
+        // We do NOT send seat_id: null here
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", selectedBooking.id);
 
     if (error) throw error;
 
-    toast({
-      title: "Success",
-      description: "Membership end date updated successfully.",
-    });
-
+    toast({ title: "Success", description: "Date updated." });
     handleBack();
     fetchAvailableBookings();
   } catch (err) {
-    console.error("❌ releaseSeatOnly FAILED:", err);
-    toast({
-      title: "Error",
-      description: "Failed to update end date. check console for details.",
-      variant: "destructive",
-    });
+    console.error("❌ Error:", err);
+    toast({ title: "Error", description: "Update failed", variant: "destructive" });
   } finally {
     setIsLoading(false);
   }
 };
-
   // -------------------------
   // UI
   // -------------------------
