@@ -231,47 +231,90 @@ const { data: newBooking, error: newBookingErr } = await supabase
     }
   };
 
-
 // -------------------------
-  // JUST RELEASE SEAT (NO REPLACEMENT)
-  // -------------------------
-  const releaseOnly = async () => {
-    if (!selectedBooking || !oldEndDate) return;
+// RELEASE SEAT ONLY (DEBUG VERSION)
+// -------------------------
+const releaseSeatOnly = async () => {
+  if (!selectedBooking) {
+    console.warn("❌ No booking selected");
+    return;
+  }
 
-    try {
-      setIsLoading(true);
-      const updatedDescription = `${selectedBooking.description || ""} (Seat released early on ${oldEndDate})`;
+  if (!oldEndDate) {
+    toast({
+      title: "Error",
+      description: "Enter seat release date.",
+      variant: "destructive",
+    });
+    return;
+  }
 
-      const { error } = await supabase
-        .from("bookings")
-        .update({
-          membership_end_date: oldEndDate,
-          end_time: `${oldEndDate}T23:59:59`,
-          description: updatedDescription,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", selectedBooking.id);
+  try {
+    setIsLoading(true);
 
-      if (error) throw error;
+    console.log("🟡 Releasing seat for booking:", selectedBooking.id);
+    console.log("🟡 Old seat id:", selectedBooking.seat_id);
+    console.log("🟡 New end date:", oldEndDate);
 
-      await supabase.from("transactions").insert([{
-        booking_id: selectedBooking.id,
-        user_id: selectedBooking.user_id,
-        amount: 0,
-        status: "completed",
-        admin_notes: `Seat released early. End date changed to ${oldEndDate}`,
-      }]);
+    const payload = {
+      membership_end_date: oldEndDate,
+      seat_id: null,
+      updated_at: new Date().toISOString(),
+      description: `${
+        selectedBooking.description || ""
+      } (Seat released on ${oldEndDate})`,
+    };
 
-      toast({ title: "Success", description: "Seat released successfully." });
-      handleBack();
-      fetchAvailableBookings();
-    } catch (err) {
-      console.error(err);
-      toast({ title: "Error", description: "Release failed.", variant: "destructive" });
-    } finally {
-      setIsLoading(false);
+    console.log("🟡 Update payload:", payload);
+
+    // UPDATE
+    const { data, error, count } = await supabase
+      .from("bookings")
+      .update(payload)
+      .eq("id", selectedBooking.id)
+      .select(); // 👈 IMPORTANT for debugging
+
+    console.log("🟢 Update response:", { data, error, count });
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      console.error("❌ No rows updated — check RLS or ID mismatch");
+      toast({
+        title: "Error",
+        description: "No booking updated (possible RLS issue)",
+        variant: "destructive",
+      });
+      return;
     }
-  };
+
+    // VERIFY
+    const { data: verifyData, error: verifyError } = await supabase
+      .from("bookings")
+      .select("id, seat_id, membership_end_date")
+      .eq("id", selectedBooking.id)
+      .single();
+
+    console.log("🔵 Verification fetch:", verifyData, verifyError);
+
+    toast({
+      title: "Success",
+      description: "Seat released successfully.",
+    });
+
+    handleBack();
+    fetchAvailableBookings();
+  } catch (err) {
+    console.error("❌ releaseSeatOnly FAILED:", err);
+    toast({
+      title: "Error",
+      description: "Seat release failed. Check console logs.",
+      variant: "destructive",
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
 
 
   // -------------------------
