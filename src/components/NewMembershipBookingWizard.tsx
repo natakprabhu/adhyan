@@ -31,7 +31,15 @@ export default function NewMembershipBookingWizard({
   userProfile,
 }: NewMembershipBookingWizardProps) {
   const [step, setStep] = useState(1);
-  const [selectedCategory, setSelectedCategory] = useState<'fixed' | 'floating' | 'limited' | null>(null);
+  //const [selectedCategory, setSelectedCategory] = useState<'fixed' | 'floating' | 'limited' | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<
+  'fixed' | 'floating' | 'limited' | 'limited6' | null
+  >(null);
+
+  const [selectedShift, setSelectedShift] = useState<
+    'morning' | 'afternoon' | 'evening' | 'night' | null
+  >(null);
+
   const [selectedSeat, setSelectedSeat] = useState<number | null>(null);
   const [duration, setDuration] = useState(1);
   const [seatAvailability, setSeatAvailability] = useState<SeatAvailability | null>(null);
@@ -39,7 +47,7 @@ export default function NewMembershipBookingWizard({
   const { toast } = useToast();
 
   // New for Limited Hours
-  const [selectedShift, setSelectedShift] = useState<'morning' | 'evening' | null>(null);
+  //const [selectedShift, setSelectedShift] = useState<'morning' | 'evening' | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -52,10 +60,18 @@ export default function NewMembershipBookingWizard({
     }
   }, [isOpen]);
 
+  // const calculateMonthlyCost = () => {
+  //   if (selectedCategory === 'fixed') return 3500;
+  //   if (selectedCategory === 'floating') return 2200;
+  //   if (selectedCategory === 'limited') return 1200; // user provided price
+  //   return 0;
+  // };
+
   const calculateMonthlyCost = () => {
-    if (selectedCategory === 'fixed') return 3500;
-    if (selectedCategory === 'floating') return 2200;
-    if (selectedCategory === 'limited') return 1200; // user provided price
+    if (selectedCategory === 'fixed') return 4000;
+    if (selectedCategory === 'floating') return 2800;
+    if (selectedCategory === 'limited') return 1800;   // 9 hours
+    if (selectedCategory === 'limited6') return 1200;   // ✅ NEW 6 hours
     return 0;
   };
 
@@ -115,16 +131,32 @@ export default function NewMembershipBookingWizard({
   const handleBooking = async () => {
     if (!userProfile || !selectedCategory) return;
 
-    // validation for limited shift
-    if (selectedCategory === 'limited' && !selectedShift) {
+
+
+    // Old validation for limited shift
+    // if (selectedCategory === 'limited' && !selectedShift) {
+    //   toast({
+    //     title: "Select Shift",
+    //     description: "Please choose a shift for the Limited Hours membership.",
+    //     variant: "destructive",
+    //   });
+    //   return;
+    // }
+
+
+    // ================= SLOT VALIDATION =================
+    if (
+      (selectedCategory === 'limited' || selectedCategory === 'limited6') &&
+      !selectedShift
+    ) {
       toast({
-        title: "Select Shift",
-        description: "Please choose a shift for the Limited Hours membership.",
+        title: "Select Slot",
+        description: "Please choose a time slot",
         variant: "destructive",
       });
       return;
     }
-
+    // ===================================================
     // validation for fixed seat availability
     if (selectedCategory === 'fixed' && selectedSeat && seatAvailability && !seatAvailability.is_available) {
       toast({
@@ -176,16 +208,31 @@ export default function NewMembershipBookingWizard({
         description: `${selectedCategory === 'fixed' ? 'Fixed' : selectedCategory === 'floating' ? 'Floating' : 'Limited Hours'} seat membership for ${duration} month${duration > 1 ? 's' : ''}`,
       };
 
-      // Add Limited Hours metadata
-      if (selectedCategory === 'limited') {
-        bookingData.slot = selectedShift;     // required for 'limited'
+      // OLD Limited Hours metadata
+      // if (selectedCategory === 'limited') {
+      //   bookingData.slot = selectedShift;     // required for 'limited'
         
-        //bookingData.limited_hours = 9;        // optional but recommended
+      //   //bookingData.limited_hours = 9;        // optional but recommended
+      // } else {
+      //   // For fixed and floating: slot MUST be null (to satisfy bookings_slot_check)
+      //   bookingData.slot = null;
+      //   //bookingData.limited_hours = null;
+      // }
+
+
+      // ================= DB-SAFE SLOT & HOURS LOGIC =================
+      if (selectedCategory === 'limited' || selectedCategory === 'limited6') {
+        bookingData.slot = selectedShift; // 'morning' | 'afternoon' | 'evening' | 'night'
+
+        bookingData.limited_hours =
+          selectedCategory === 'limited' ? 9 : 6;
       } else {
-        // For fixed and floating: slot MUST be null (to satisfy bookings_slot_check)
+        // IMPORTANT: must be NULL for fixed & floating
         bookingData.slot = null;
-        //bookingData.limited_hours = null;
+        bookingData.limited_hours = null;
       }
+      // =============================================================
+
 
       const { error } = await supabase.from('bookings').insert(bookingData);
 
@@ -207,23 +254,67 @@ export default function NewMembershipBookingWizard({
   };
 
   // Step Navigation
+  // const nextStep = async () => {
+  //   if (step === 1 && selectedCategory === "fixed") {
+  //     setStep(2); // seat selection
+  //   } else if (step === 1 && selectedCategory === "limited6") {
+  //     setStep(2); // choose shift
+  //   } else if (step === 2 && selectedCategory === "limited6") {
+  //     setStep(3); // duration
+  //   } else if (step === 1 && selectedCategory === "floating") {
+  //     setStep(3); // jump to duration (floating skips seat selection)
+  //   } else if (step === 1 && selectedCategory === "limited") {
+  //     setStep(2); // choose shift
+  //   } else if (step === 2 && selectedCategory === "fixed") {
+  //     setStep(3); // seat selected -> duration
+  //   } else if (step === 2 && selectedCategory === "limited") {
+  //     setStep(3); // shift selected -> duration
+  //   } else if (step === 3) {
+  //     setStep(4); // duration -> summary
+  //   } else if (step === 4) {
+  //     setStep(5); // submit / success
+  //   }
+  // };
+
   const nextStep = async () => {
-    if (step === 1 && selectedCategory === "fixed") {
-      setStep(2); // seat selection
-    } else if (step === 1 && selectedCategory === "floating") {
-      setStep(3); // jump to duration (floating skips seat selection)
-    } else if (step === 1 && selectedCategory === "limited") {
-      setStep(2); // choose shift
-    } else if (step === 2 && selectedCategory === "fixed") {
-      setStep(3); // seat selected -> duration
-    } else if (step === 2 && selectedCategory === "limited") {
-      setStep(3); // shift selected -> duration
-    } else if (step === 3) {
-      setStep(4); // duration -> summary
-    } else if (step === 4) {
-      setStep(5); // submit / success
+    if (step === 1) {
+      if (selectedCategory === "fixed") {
+        setStep(2); // seat selection
+        return;
+      }
+
+      if (selectedCategory === "floating") {
+        setStep(3); // skip seat
+        return;
+      }
+
+      if (selectedCategory === "limited" || selectedCategory === "limited6") {
+        setStep(2); // shift selection
+        return;
+      }
+    }
+
+    if (step === 2) {
+      if (
+        selectedCategory === "fixed" ||
+        selectedCategory === "limited" ||
+        selectedCategory === "limited6"
+      ) {
+        setStep(3); // duration
+        return;
+      }
+    }
+
+    if (step === 3) {
+      setStep(4); // summary
+      return;
+    }
+
+    if (step === 4) {
+      setStep(5); // success
     }
   };
+
 
   const prevStep = () => {
     if (step > 1) setStep(step - 1);
@@ -337,117 +428,178 @@ export default function NewMembershipBookingWizard({
           </div>
 
           {/* Step 1: Category Selection */}
-          {step === 1 && (
-            <div className="space-y-6">
-              <h3 className="text-xl font-semibold text-center">Choose Your Membership</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Fixed Seat */}
-                <Card
-                  className={cn(
-                    "cursor-pointer transition-all hover:shadow-lg border-2 group",
-                    selectedCategory === 'fixed' ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border-border hover:border-primary/50"
-                  )}
-                  onClick={() => { setSelectedCategory('fixed'); setSelectedShift(null); }}
-                >
-                  <CardHeader className="text-center">
-                    <Crown className="h-16 w-16 mx-auto mb-4 text-primary" />
-                    <CardTitle className="text-2xl">Fixed Seat</CardTitle>
-                    <CardDescription className="text-base">Premium membership with dedicated seat</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="text-center">
-                      <span className="text-4xl font-bold text-primary">₹3,500</span>
-                      <span className="text-lg text-muted-foreground">/month</span>
-                    </div>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3 text-sm">
-                        <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-                        <span>Dedicated seat number (1-50)</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm">
-                        <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-                        <span>Personal locker included</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm">
-                        <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-                        <span>24×7 access</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+{step === 1 && (
+  <div className="space-y-6">
+    <h3 className="text-xl font-semibold text-center">
+      Choose Your Membership
+    </h3>
 
-                {/* Floating Seat */}
-                <Card
-                  className={cn(
-                    "cursor-pointer transition-all hover:shadow-lg border-2 group",
-                    selectedCategory === 'floating' ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border-border hover:border-primary/50"
-                  )}
-                  onClick={() => { setSelectedCategory('floating'); setSelectedShift(null); }}
-                >
-                  <CardHeader className="text-center">
-                    <Users className="h-16 w-16 mx-auto mb-4 text-primary" />
-                    <CardTitle className="text-2xl">Floating Seat</CardTitle>
-                    <CardDescription className="text-base">Flexible membership with any available seat</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="text-center">
-                      <span className="text-4xl font-bold text-primary">₹2,200</span>
-                      <span className="text-lg text-muted-foreground">/month</span>
-                    </div>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3 text-sm">
-                        <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-                        <span>Any available seat (1-50)</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm">
-                        <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-                        <span>24×7 access</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm">
-                        <AlertCircle className="h-5 w-5 text-yellow-500 flex-shrink-0" />
-                        <span>No personal locker</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+    {/* GRID FIX: 4 cards in one row on desktop */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
-                {/* Limited Hours */}
-                <Card
-                  className={cn(
-                    "cursor-pointer transition-all hover:shadow-lg border-2 group",
-                    selectedCategory === 'limited' ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border-border hover:border-primary/50"
-                  )}
-                  onClick={() => { setSelectedCategory('limited'); setSelectedSeat(null); }}
-                >
-                  <CardHeader className="text-center">
-                    <Clock className="h-16 w-16 mx-auto mb-4 text-primary" />
-                    <CardTitle className="text-2xl">Limited Hours</CardTitle>
-                    <CardDescription className="text-base">9 hours per day — Morning / Evening Shift</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="text-center">
-                      <span className="text-4xl font-bold text-primary">₹1,200</span>
-                      <span className="text-lg text-muted-foreground">/month</span>
-                    </div>
-                    <div className="space-y-3 text-sm">
-                      <div className="flex items-center gap-3">
-                        <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-                        <span>Morning: 6 AM – 3 PM</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-                        <span>Evening: 3 PM – 12 AM</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <AlertCircle className="h-5 w-5 text-yellow-500 flex-shrink-0" />
-                        <span>No personal locker</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+      {/* ================= FIXED SEAT ================= */}
+      <Card
+        className={cn(
+          "cursor-pointer border-2 transition-all hover:shadow-md h-full min-h-[320px]",
+          selectedCategory === 'fixed'
+            ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+            : "border-border hover:border-primary/50"
+        )}
+        onClick={() => {
+          setSelectedCategory('fixed');
+          setSelectedShift(null);
+        }}
+      >
+        <CardHeader className="text-center pb-2">
+          <Crown className="h-10 w-10 mx-auto mb-2 text-primary" />
+          <CardTitle className="text-lg">Fixed Seat</CardTitle>
+          <CardDescription className="text-xs">
+            Dedicated personal seat
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-2 pt-2">
+          <div className="text-center">
+            <span className="text-2xl font-bold text-primary">₹4,000</span>
+            <span className="text-xs text-muted-foreground">/month</span>
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <span className="text-xs">Dedicated seat</span>
             </div>
-          )}
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <span className="text-xs">Personal locker</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <span className="text-xs">24×7 access</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ================= FLOATING SEAT ================= */}
+      <Card
+        className={cn(
+          "cursor-pointer border-2 transition-all hover:shadow-md h-full min-h-[320px]",
+          selectedCategory === 'floating'
+            ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+            : "border-border hover:border-primary/50"
+        )}
+        onClick={() => {
+          setSelectedCategory('floating');
+          setSelectedShift(null);
+        }}
+      >
+        <CardHeader className="text-center pb-2">
+          <Users className="h-10 w-10 mx-auto mb-2 text-primary" />
+          <CardTitle className="text-lg">Floating Seat</CardTitle>
+          <CardDescription className="text-xs">
+            Any available seat
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-2 pt-2">
+          <div className="text-center">
+            <span className="text-2xl font-bold text-primary">₹2,800</span>
+            <span className="text-xs text-muted-foreground">/month</span>
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <span className="text-xs">Any seat (1–50)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <span className="text-xs">24×7 access</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-yellow-500" />
+              <span className="text-xs">No locker</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ================= LIMITED 9 HOURS ================= */}
+      <Card
+        className={cn(
+          "cursor-pointer border-2 transition-all hover:shadow-md h-full min-h-[320px]",
+          selectedCategory === 'limited'
+            ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+            : "border-border hover:border-primary/50"
+        )}
+        onClick={() => {
+          setSelectedCategory('limited');
+          setSelectedSeat(null);
+        }}
+      >
+        <CardHeader className="text-center pb-2">
+          <Clock className="h-10 w-10 mx-auto mb-2 text-primary" />
+          <CardTitle className="text-lg">9 Hours</CardTitle>
+          <CardDescription className="text-xs">
+            Morning or Evening
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-2 pt-2">
+          <div className="text-center">
+            <span className="text-2xl font-bold text-primary">₹1,800</span>
+            <span className="text-xs text-muted-foreground">/month</span>
+          </div>
+
+          <div className="space-y-1 text-xs">
+            <div>🌅 6 AM – 3 PM</div>
+            <div>🌆 3 PM – 12 AM</div>
+            <div className="text-yellow-600">No locker</div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ================= LIMITED 6 HOURS ================= */}
+      <Card
+        className={cn(
+          "cursor-pointer border-2 transition-all hover:shadow-md h-full min-h-[320px]",
+          selectedCategory === 'limited6'
+            ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+            : "border-border hover:border-primary/50"
+        )}
+        onClick={() => {
+          setSelectedCategory('limited6');
+          setSelectedSeat(null);
+          setSelectedShift(null);
+        }}
+      >
+        <CardHeader className="text-center pb-2">
+          <Clock className="h-10 w-10 mx-auto mb-2 text-primary" />
+          <CardTitle className="text-lg">6 Hours</CardTitle>
+          <CardDescription className="text-xs">
+            Short flexible slots
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-2 pt-2">
+          <div className="text-center">
+            <span className="text-2xl font-bold text-primary">₹1,200</span>
+            <span className="text-xs text-muted-foreground">/month</span>
+          </div>
+
+          <div className="space-y-1 text-xs">
+            <div>🌅 6 AM – 12 PM</div>
+            <div>🌤 12 PM – 6 PM</div>
+            <div>🌆 6 PM – 12 AM</div>
+            <div>🌙 12 AM – 6 AM</div>
+          </div>
+        </CardContent>
+      </Card>
+
+    </div>
+  </div>
+)}
 
           {/* Step 2: Seat Selection for Fixed OR Note for Floating OR Shift selection for Limited */}
           {step === 2 && selectedCategory === 'fixed' && (
@@ -477,7 +629,7 @@ export default function NewMembershipBookingWizard({
                 <Card className="bg-primary/5 border-primary/20">
                   <CardContent className="pt-6">
                     <div className="text-center space-y-2">
-                      <div className="text-2xl font-bold text-primary">₹3,500 per month</div>
+                      <div className="text-2xl font-bold text-primary">₹4,000 per month</div>
                       <p className="text-sm text-muted-foreground">Personal seat with locker included</p>
                     </div>
                   </CardContent>
@@ -492,7 +644,7 @@ export default function NewMembershipBookingWizard({
               <div className="max-w-lg mx-auto">
                 <Card className="bg-blue-50 border-blue-200">
                   <CardContent className="pt-6 text-center space-y-4">
-                    <div className="text-2xl font-bold text-primary">₹2,200 per month</div>
+                    <div className="text-2xl font-bold text-primary">₹2,800 per month</div>
                     <div className="space-y-3 text-sm">
                       <p className="text-blue-800 font-medium">
                         🎉 Any available seat will be provided for 24×7 access from today's date!
@@ -538,11 +690,42 @@ export default function NewMembershipBookingWizard({
               </div>
 
               <div className="text-center">
-                <p className="text-lg font-semibold text-primary">₹1,200 per month</p>
+                <p className="text-lg font-semibold text-primary">₹1,800 per month</p>
                 <p className="text-sm text-muted-foreground">Access limited to selected shift only (9 hours / day)</p>
               </div>
             </div>
           )}
+
+          {step === 2 && (selectedCategory === 'limited6') && (
+            <div className="space-y-6">
+              <h3 className="text-xl font-semibold text-center">Choose Your Shift</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    { id: 'morning', label: 'Morning', time: '6 AM – 12 PM'},
+                    { id: 'afternoon', label: 'Afternoon', time: '12 PM – 6 PM' },
+                    { id: 'evening', label: 'Evening', time: '6 PM – 12 AM' },
+                    { id: 'night', label: 'Night', time: '12 AM – 6 AM' },
+                  ].map(s => (
+                    <Card
+                      key={s.id}
+                      onClick={() => setSelectedShift(s.id as any)}
+                      className={cn(
+                        "cursor-pointer border-2 p-4 text-center",
+                        selectedShift === s.id ? "border-primary bg-primary/10" : "border-muted"
+                      )}
+                    >
+                      <CardTitle>{s.label}</CardTitle>
+                      <CardDescription>{s.time}</CardDescription>
+                    </Card>
+                  ))}
+                </div>
+{/*
+
+              <div className="text-center">
+                <p className="text-lg font-semibold text-primary">₹1,200 per month</p>
+                <p className="text-sm text-muted-foreground">Access limited to selected shift only (9 hours / day)</p>
+              </div>*/}
+            </div>)}
 
           {/* Step 3: Duration Selection */}
           {step === 3 && (
@@ -607,13 +790,25 @@ export default function NewMembershipBookingWizard({
                                 {selectedCategory === 'fixed' ? `Seat ${selectedSeat}` : 'Any Available Seat'}
                               </span>
                             </div>
-
+{/*
                             {selectedCategory === 'limited' && (
                               <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
                                 <span className="font-medium">Shift:</span>
                                 <span className="font-bold capitalize">{selectedShift ? `${selectedShift} Shift` : 'Not selected'}</span>
                               </div>
                             )}
+*/}
+                            {(selectedCategory === 'limited' || selectedCategory === 'limited6') && (
+                              <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                                <span className="font-medium">Access:</span>
+                                <span className="font-bold">
+                                  {selectedCategory === 'limited'
+                                    ? '9 Hours / Day'
+                                    : '6 Hours / Day'}
+                                </span>
+                              </div>
+                            )}
+
 
                             <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
                               <span className="font-medium">Cost per Month:</span>
@@ -698,8 +893,10 @@ export default function NewMembershipBookingWizard({
                     // fixed seat must have seat selected and available
                     (step === 2 && selectedCategory === 'fixed' && (!selectedSeat || (seatAvailability && !seatAvailability.is_available))) ||
                     // limited must have shift
-                    (step === 2 && selectedCategory === 'limited' && !selectedShift) ||
-                    isLoading
+                    // (step === 2 && selectedCategory === 'limited' && !selectedShift) ||
+                    // isLoading
+                    (step === 2 && (selectedCategory === 'limited' || selectedCategory === 'limited6') && !selectedShift)
+
                   }
                   className="flex items-center gap-2"
                 >
