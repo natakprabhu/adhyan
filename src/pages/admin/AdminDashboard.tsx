@@ -15,8 +15,8 @@ import { SeatLayout } from "./SeatLayout";
 import { PasswordManager } from "./PasswordManager";
 import { ReleaseSeat } from "./ReleaseSeat";
 import { SaveSeatStatusButton } from "./SaveSeatStatusButton";
+import LimitedHours6UsersManagement from "@/pages/admin/LimitedHours6UsersManagement";
 import LimitedHoursUsersManagement from "@/pages/admin/LimitedHoursUsersManagement";
-
 export const AdminDashboard = () => {
   const { user, role, loading } = useAuth();
 
@@ -195,7 +195,8 @@ const [stats, setStats] = useState({
     <TabsTrigger value="users">All Users</TabsTrigger>
     <TabsTrigger value="fixed-users">Fixed Users</TabsTrigger>
     <TabsTrigger value="floating-users">Floating Users</TabsTrigger>
-    <TabsTrigger value="limited-users">Limited Hours</TabsTrigger>
+    <TabsTrigger value="limited-users">9 Hours</TabsTrigger>
+    <TabsTrigger value="limited-users6">6 Hours</TabsTrigger>
     <TabsTrigger value="biometric">Biometric</TabsTrigger>
     <TabsTrigger value="schedule">Seat Status</TabsTrigger>
     <TabsTrigger value="layout">Seat Layout</TabsTrigger>
@@ -209,6 +210,7 @@ const [stats, setStats] = useState({
   <TabsContent value="fixed-users"><FixedUsersManagement /></TabsContent>
   <TabsContent value="floating-users"><FloatingUsersManagement /></TabsContent>
   <TabsContent value="limited-users"><LimitedHoursUsersManagement /></TabsContent>
+  <TabsContent value="limited-users6"><LimitedHours6UsersManagement /></TabsContent>
   <TabsContent value="biometric"><BiometricManagement /></TabsContent>
   <TabsContent value="schedule"><GanttChart /></TabsContent>
   <TabsContent value="layout"><SeatLayout /></TabsContent>

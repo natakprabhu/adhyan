@@ -77,7 +77,7 @@ interface UserTransaction {
   booking_id?: string | null;
 }
 
-export default function LimitedHoursUsersManagement() {
+export default function LimitedHours6UsersManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [userData, setUserData] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -134,7 +134,7 @@ export default function LimitedHoursUsersManagement() {
               .from("bookings")
               .select("id, membership_start_date, membership_end_date, slot, seat_category, monthly_cost, duration_months")
               .eq("user_id", u.id)
-              .eq("seat_category", "limited9")
+              .eq("seat_category", "limited6")
               .eq("status", "confirmed")
               .eq("payment_status", "paid")
               .order("membership_start_date", { ascending: false })
@@ -405,9 +405,9 @@ export default function LimitedHoursUsersManagement() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" /> Limited Hours (9 Hours) Users
+            <Calendar className="h-5 w-5" /> Limited Hours (6 Hours) Users
           </CardTitle>
-          <CardDescription>Manage memberships — Morning & Evening shifts</CardDescription>
+          <CardDescription>Manage memberships — Morning,Afternoon,Evening,Night shifts</CardDescription>
         </CardHeader>
 
         <CardContent>

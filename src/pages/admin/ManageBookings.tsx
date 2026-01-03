@@ -113,6 +113,21 @@ const [deleteBookingData, setDeleteBookingData] = useState<Booking | null>(null)
     fetchBookings();
   }, [filter]);
 
+  const getCategoryLabel = (category: string) => {
+    switch (category) {
+      case 'fixed':
+        return 'Fixed';
+      case 'floating':
+        return 'Floating';
+      case 'limited6':
+        return 'Limited (6 Hours)';
+      case 'limited9':
+        return 'Limited (9 Hours)';
+      default:
+        return category;
+    }
+  };
+
 
   // For date-only booking fields (membership_start_date, membership_end_date)
   const inputDateToDB = (val: string) => val || null;
@@ -675,7 +690,8 @@ const handleBookingSave = async () => {
                 <TableRow key={booking.id}>
                   <TableCell>{booking.users?.name}</TableCell>
                   <TableCell>{booking.seats?.seat_number ?? "-"}</TableCell>
-                  <TableCell>{renderCategory(booking.seat_category)}</TableCell>
+                  <TableCell><span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-100 text-xs">{getCategoryLabel(booking.seat_category)}</span></TableCell>
+
 
                   <TableCell>{booking.slot ?? "-"}</TableCell>
                   <TableCell>

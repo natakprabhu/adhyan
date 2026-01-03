@@ -71,7 +71,7 @@ export default function NewMembershipBookingWizard({
     if (selectedCategory === 'fixed') return 4000;
     if (selectedCategory === 'floating') return 2800;
     if (selectedCategory === 'limited') return 1800;   // 9 hours
-    if (selectedCategory === 'limited6') return 1200;   // ✅ NEW 6 hours
+    if (selectedCategory === 'limited6') return 1500;   // ✅ NEW 6 hours
     return 0;
   };
 
@@ -205,7 +205,16 @@ export default function NewMembershipBookingWizard({
         type: 'membership',
         status: 'pending',
         payment_status: 'pending',
-        description: `${selectedCategory === 'fixed' ? 'Fixed' : selectedCategory === 'floating' ? 'Floating' : 'Limited Hours'} seat membership for ${duration} month${duration > 1 ? 's' : ''}`,
+        //description: `${selectedCategory === 'fixed' ? 'Fixed' : selectedCategory === 'floating' ? 'Floating' : 'Limited Hours'} seat membership for ${duration} month${duration > 1 ? 's' : ''}`,
+        description:
+        selectedCategory === 'fixed'
+          ? `Fixed Seat membership for ${duration} month${duration > 1 ? 's' : ''}`
+          : selectedCategory === 'floating'
+          ? `Floating Seat membership for ${duration} month${duration > 1 ? 's' : ''}`
+          : `Limited Hours seat membership for ${duration} month${duration > 1 ? 's' : ''} - ${selectedShift} - ${
+              selectedCategory === 'limited6' ? '6 Hrs' : '9 Hrs'
+            }`,
+           
       };
 
       // OLD Limited Hours metadata
@@ -219,19 +228,21 @@ export default function NewMembershipBookingWizard({
       //   //bookingData.limited_hours = null;
       // }
 
-
-      // ================= DB-SAFE SLOT & HOURS LOGIC =================
+      // ================= DB-SAFE SLOT LOGIC (NO limited_hours COLUMN) =================
       if (selectedCategory === 'limited' || selectedCategory === 'limited6') {
         bookingData.slot = selectedShift; // 'morning' | 'afternoon' | 'evening' | 'night'
 
-        bookingData.limited_hours =
-          selectedCategory === 'limited' ? 9 : 6;
+        // normalize seat_category for DB
+        bookingData.seat_category =
+          selectedCategory === 'limited'
+            ? 'limited9'
+            : 'limited6';
       } else {
-        // IMPORTANT: must be NULL for fixed & floating
+        // fixed & floating
         bookingData.slot = null;
-        bookingData.limited_hours = null;
+        bookingData.seat_category = selectedCategory; // 'fixed' | 'floating'
       }
-      // =============================================================
+      // ============================================================================== 
 
 
       const { error } = await supabase.from('bookings').insert(bookingData);
@@ -584,7 +595,7 @@ export default function NewMembershipBookingWizard({
 
         <CardContent className="space-y-2 pt-2">
           <div className="text-center">
-            <span className="text-2xl font-bold text-primary">₹1,200</span>
+            <span className="text-2xl font-bold text-primary">₹1,500</span>
             <span className="text-xs text-muted-foreground">/month</span>
           </div>
 
@@ -779,9 +790,19 @@ export default function NewMembershipBookingWizard({
                           <div className="grid grid-cols-1 gap-4">
                             <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
                               <span className="font-medium">Seat Type:</span>
-                              <Badge variant="default" className="capitalize">
+                              {/*<Badge variant="default" className="capitalize">
                                 {selectedCategory} Seat
+                              </Badge>*/}
+                              <Badge variant="default" className="capitalize">
+                                {selectedCategory === 'fixed'
+                                  ? 'Fixed Seat'
+                                  : selectedCategory === 'floating'
+                                  ? 'Floating Seat'
+                                  : selectedCategory === 'limited'
+                                  ? 'Limited Hours (9h)'
+                                  : 'Limited Hours (6h)'}
                               </Badge>
+
                             </div>
 
                             <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
