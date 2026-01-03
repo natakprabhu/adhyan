@@ -272,7 +272,7 @@ export default function LimitedHoursUsersManagement() {
         payment_status: "paid",
         membership_start_date: startDate.toISOString().split("T")[0],
         membership_end_date: endDate.toISOString().split("T")[0],
-        seat_category: "limited",
+        seat_category: "limited9",
         slot: repeatBookingData.slot,
         monthly_cost: repeatBookingData.monthlyCost,
         duration_months: repeatBookingData.durationMonths,
